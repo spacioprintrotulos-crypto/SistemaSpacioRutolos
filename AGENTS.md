@@ -54,6 +54,12 @@ curl.exe -s -b cookies.txt -H "Content-Type: application/json" -d '{...}' http:/
 ```
 Nota: PowerShell 5.1 (`Invoke-RestMethod`) falla con el server local ("protocol violation") → usar `curl.exe`.
 
+## Estado de ambientes (2026-08-17)
+- **Local** (`.wrangler` D1): ambiente `00` (apitest) — para desarrollo/pruebas sin riesgo fiscal.
+- **Remota** (Cloudflare D1 `fac2026-db`): ambiente `01` (producción). Emisor `nit = 12012608691018` (NIT real; el DUI `016419144` es solo login alterno — el token JWT lo confirma: `c_nit` vs `c_dui`). Certificado de firma de producción cargado en `mh_config.firma_privada_pem` (sujeto "Spacio Rotulos", vence 2030-07-02, del XML `Certificado_12012608691018.crt`).
+- La clave API de cada ambiente vive solo en D1 (`mh_config.api_pwd`), nunca en el repo.
+- Sitio desplegado: https://sistema-fac2026-26c.pages.dev (Pages project `sistema-fac2026`).
+
 ## Reglas
 - No usar emojis en archivos. No exponer secretos. `*.pem`/`*.crt`/`secrets/` en `.gitignore`.
 - NO hacer commit salvo que el usuario lo pida explícitamente.

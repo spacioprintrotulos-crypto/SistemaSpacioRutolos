@@ -6,7 +6,7 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "fac2026-db"
-database_id = "42db794d-cc4f-4a86-a869-9cd376335cfc"
+database_id = "9dd5c70e-d46b-47fc-83ed-664f6cb974f1"
 
 [vars]
 APP_NAME = "SISTEMA FAC2026"

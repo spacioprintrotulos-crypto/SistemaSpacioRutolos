@@ -1,0 +1,19 @@
+{
+  "name": "sistema-fac2026",
+  "version": "1.0.0",
+  "description": "Sistema de Facturación Electrónica DTE - El Salvador (Factura, Crédito Fiscal, Nota de Crédito)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date 2024-12-01",
+    "migrate:local": "wrangler d1 migrations apply fac2026-db --local",
+    "migrate": "wrangler d1 migrations apply fac2026-db",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  },
+  "dependencies": {
+    "node-forge": "^1.3.1"
+  }
+}

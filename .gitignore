@@ -1,0 +1,16 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+*.log
+cookies.txt
+dev-server.log
+.DS_Store
+Thumbs.db
+secrets/
+*.pem
+*.crt
+.abacusai/
+*.key
+*.p12
+*.pfx

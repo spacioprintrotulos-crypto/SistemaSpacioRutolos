@@ -4,6 +4,7 @@
 //  - Archivo PKCS#12 tradicional (.p12/.pfx)
 // Guarda la llave privada como PEM PKCS8 y los datos de visualización.
 import { json } from '../_middleware.js';
+import { getMHAmbienteActivo } from '../_lib/db.js';
 import forge from 'node-forge';
 
 function decodeB64(str) {
@@ -79,7 +80,7 @@ function parseP12(der, password) {
 
 export async function onRequestPost({ request, env }) {
   try {
-    const { archivoB64, password } = await request.json();
+    const { archivoB64, password, ambiente: ambienteSolicitado } = await request.json();
     if (!archivoB64 || !password) {
       return json({ ok: false, error: 'Archivo de certificado y contraseña son requeridos' }, 400);
     }
@@ -97,13 +98,14 @@ export async function onRequestPost({ request, env }) {
 
     const { pem, subject, vence } = result;
 
+    const ambiente = ambienteSolicitado === '01' ? '01' : ambienteSolicitado === '00' ? '00' : await getMHAmbienteActivo(env.DB);
     await env.DB.prepare(
-      `INSERT INTO mh_config (id, firma_privada_pem, firma_activa, cert_subject, cert_vence, updated_at)
-       VALUES (1, ?, 1, ?, ?, datetime('now'))
-       ON CONFLICT(id) DO UPDATE SET firma_privada_pem=excluded.firma_privada_pem,
+      `INSERT INTO mh_perfiles (ambiente, firma_privada_pem, firma_activa, cert_subject, cert_vence, updated_at)
+       VALUES (?, ?, 1, ?, ?, datetime('now'))
+       ON CONFLICT(ambiente) DO UPDATE SET firma_privada_pem=excluded.firma_privada_pem,
          firma_activa=1, cert_subject=excluded.cert_subject, cert_vence=excluded.cert_vence,
          updated_at=excluded.updated_at`
-    ).bind(pem, subject, vence).run();
+    ).bind(ambiente, pem, subject, vence).run();
 
     return json({ ok: true, cert_subject: subject, cert_vence: vence });
   } catch (e) {
@@ -112,9 +114,11 @@ export async function onRequestPost({ request, env }) {
 }
 
 // DELETE /api/configuracion/firma → quitar certificado
-export async function onRequestDelete({ env }) {
+export async function onRequestDelete({ request, env }) {
+  const solicitado = new URL(request.url).searchParams.get('ambiente');
+  const ambiente = solicitado === '01' ? '01' : solicitado === '00' ? '00' : await getMHAmbienteActivo(env.DB);
   await env.DB.prepare(
-    'UPDATE mh_config SET firma_privada_pem = NULL, firma_activa = 0, cert_subject = NULL, cert_vence = NULL WHERE id = 1'
-  ).run();
+    'UPDATE mh_perfiles SET firma_privada_pem = NULL, firma_activa = 0, cert_subject = NULL, cert_vence = NULL WHERE ambiente = ?'
+  ).bind(ambiente).run();
   return json({ ok: true });
 }

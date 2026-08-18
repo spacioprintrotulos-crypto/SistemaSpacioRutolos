@@ -1,17 +1,21 @@
 // GET /api/configuracion  → emisor + estado MH (sin exponer secretos)
 // PUT /api/configuracion  → guardar emisor y/o credenciales MH
 import { json } from '../_middleware.js';
-import { getEmisor, getMHConfig } from '../_lib/db.js';
+import { getEmisor, getMHConfig, getMHAmbienteActivo } from '../_lib/db.js';
 
-export async function onRequestGet({ env }) {
-  const emisor = (await getEmisor(env.DB)) || {};
-  const mh = (await getMHConfig(env.DB)) || {};
+export async function onRequestGet({ request, env }) {
+  const requested = new URL(request.url).searchParams.get('ambiente');
+  const ambiente = requested === '01' ? '01' : requested === '00' ? '00' : await getMHAmbienteActivo(env.DB);
+  const ambienteActivo = await getMHAmbienteActivo(env.DB);
+  const emisor = (await getEmisor(env.DB, ambiente)) || {};
+  const mh = (await getMHConfig(env.DB, ambiente)) || { ambiente };
   const correlativos = await env.DB.prepare('SELECT tipo_dte, ultimo FROM correlativos').all();
   return json({
     ok: true,
     emisor,
+    ambiente_activo: ambienteActivo,
     mh: {
-      ambiente: mh.ambiente || '00',
+      ambiente,
       api_user: mh.api_user || '',
       api_pwd_configurada: !!mh.api_pwd,
       firma_activa: !!mh.firma_activa,
@@ -28,12 +32,15 @@ export async function onRequestPut({ request, env }) {
 
     if (body.emisor) {
       const e = body.emisor;
+      if (!['00', '01'].includes(e.ambiente)) {
+        return json({ ok: false, error: 'Seleccione un ambiente MH válido para el emisor' }, 400);
+      }
       await env.DB.prepare(
-        `INSERT INTO emisor_config (id, nit, nrc, nombre, nombre_comercial, cod_actividad, desc_actividad,
+        `INSERT INTO emisor_perfiles (ambiente, nit, nrc, nombre, nombre_comercial, cod_actividad, desc_actividad,
            tipo_establecimiento, departamento, municipio, complemento, telefono, correo,
            cod_estable_mh, cod_estable, cod_punto_venta_mh, cod_punto_venta, updated_at)
-         VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-         ON CONFLICT(id) DO UPDATE SET
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(ambiente) DO UPDATE SET
            nit=excluded.nit, nrc=excluded.nrc, nombre=excluded.nombre, nombre_comercial=excluded.nombre_comercial,
            cod_actividad=excluded.cod_actividad, desc_actividad=excluded.desc_actividad,
            tipo_establecimiento=excluded.tipo_establecimiento, departamento=excluded.departamento,
@@ -42,7 +49,7 @@ export async function onRequestPut({ request, env }) {
            cod_punto_venta_mh=excluded.cod_punto_venta_mh, cod_punto_venta=excluded.cod_punto_venta,
            updated_at=excluded.updated_at`
       ).bind(
-        e.nit || null, e.nrc || null, e.nombre || null, e.nombre_comercial || null,
+        e.ambiente, e.nit || null, e.nrc || null, e.nombre || null, e.nombre_comercial || null,
         e.cod_actividad || null, e.desc_actividad || null, e.tipo_establecimiento || '01',
         e.departamento || null, e.municipio || null, e.complemento || null,
         e.telefono || null, e.correo || null,
@@ -53,14 +60,21 @@ export async function onRequestPut({ request, env }) {
 
     if (body.mh) {
       const m = body.mh;
-      const actual = await getMHConfig(env.DB);
+      if (!['00', '01'].includes(m.ambiente)) {
+        return json({ ok: false, error: 'Ambiente MH inválido' }, 400);
+      }
+      const actual = await getMHConfig(env.DB, m.ambiente);
       const apiPwd = m.api_pwd ? m.api_pwd : (actual ? actual.api_pwd : null);
       await env.DB.prepare(
-        `INSERT INTO mh_config (id, ambiente, api_user, api_pwd, updated_at)
-         VALUES (1, ?, ?, ?, datetime('now'))
-         ON CONFLICT(id) DO UPDATE SET ambiente=excluded.ambiente, api_user=excluded.api_user,
-           api_pwd=excluded.api_pwd, updated_at=excluded.updated_at`
+        `INSERT INTO mh_perfiles (ambiente, api_user, api_pwd, updated_at)
+         VALUES (?, ?, ?, datetime('now'))
+         ON CONFLICT(ambiente) DO UPDATE SET api_user=excluded.api_user,
+         api_pwd=excluded.api_pwd, updated_at=excluded.updated_at`
       ).bind(m.ambiente || '00', m.api_user || null, apiPwd).run();
+      await env.DB.prepare(
+        `INSERT INTO app_config (clave, valor) VALUES ('mh_ambiente_activo', ?)
+         ON CONFLICT(clave) DO UPDATE SET valor=excluded.valor`
+      ).bind(m.ambiente).run();
     }
 
     if (body.correlativos && typeof body.correlativos === 'object') {

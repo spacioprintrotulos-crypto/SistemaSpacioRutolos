@@ -26,11 +26,30 @@ export async function getSessionSecret(DB) {
   return cfg ? cfg.valor : null;
 }
 
-export async function getEmisor(DB) {
+export async function getEmisor(DB, ambiente = null) {
+  const perfil = ambiente || await getMHAmbienteActivo(DB);
+  try {
+    const row = await DB.prepare('SELECT * FROM emisor_perfiles WHERE ambiente = ?').bind(perfil).first();
+    if (row) return row;
+  } catch (e) {
+    // Compatibilidad durante la primera ejecución antes de aplicar la migración.
+  }
   return DB.prepare('SELECT * FROM emisor_config WHERE id = 1').first();
 }
 
-export async function getMHConfig(DB) {
+export async function getMHAmbienteActivo(DB) {
+  const row = await DB.prepare("SELECT valor FROM app_config WHERE clave = 'mh_ambiente_activo'").first();
+  return row?.valor === '01' ? '01' : '00';
+}
+
+export async function getMHConfig(DB, ambiente = null) {
+  const perfil = ambiente || await getMHAmbienteActivo(DB);
+  try {
+    const row = await DB.prepare('SELECT * FROM mh_perfiles WHERE ambiente = ?').bind(perfil).first();
+    if (row) return row;
+  } catch (e) {
+    // Compatibilidad durante la primera ejecución antes de aplicar la migración.
+  }
   return DB.prepare('SELECT * FROM mh_config WHERE id = 1').first();
 }
 

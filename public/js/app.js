@@ -808,7 +808,7 @@ function renderConfiguracion(app) {
 }
 
 function pintarConfig(r) {
-  const { emisor, mh, correlativos } = r;
+  const { emisor, mh, correlativos, ambiente_activo } = r;
   const emisorOk = emisor?.nit && emisor?.nombre;
   const firmaOk = mh.firma_activa;
 
@@ -816,7 +816,7 @@ function pintarConfig(r) {
     <div class="config-status">
       <div class="config-item"><div class="cfg-label">Emisor</div><div class="cfg-value ${emisorOk ? 'cfg-ok' : 'cfg-warn'}">${emisorOk ? 'Configurado' : 'Pendiente'}</div></div>
       <div class="config-item"><div class="cfg-label">Firma electrónica</div><div class="cfg-value ${firmaOk ? 'cfg-ok' : 'cfg-warn'}">${firmaOk ? 'Cargada' : 'No cargada'}</div></div>
-      <div class="config-item"><div class="cfg-label">Ambiente MH</div><div class="cfg-value">${mh.ambiente === '01' ? 'Producción' : 'Pruebas'}</div></div>
+      <div class="config-item"><div class="cfg-label">Ambiente MH activo</div><div class="cfg-value">${ambiente_activo === '01' ? 'Producción' : 'Pruebas'}</div></div>
       <div class="config-item"><div class="cfg-label">Certificado vence</div><div class="cfg-value">${esc(mh.cert_vence || '—')}</div></div>
     </div>
 
@@ -847,7 +847,7 @@ function pintarConfig(r) {
         <div class="form-field"><label>Usuario (NIT)</label><input id="mh-user" value="${esc(mh.api_user || '')}"></div>
         <div class="form-field"><label>Contraseña</label><input id="mh-pwd" type="password" placeholder="${mh.api_pwd_configurada ? '•••••••• (guardada)' : 'Contraseña del portal MH'}"></div>
       </div>
-      <div class="mt"><button class="btn btn-verde" id="btn-guardar-mh">Guardar credenciales</button></div>
+      <div class="mt"><button class="btn btn-secundario" id="btn-probar-mh">Probar conexión</button> <button class="btn btn-verde" id="btn-guardar-mh">Guardar y activar ambiente</button></div>
     </div>
 
     <div class="card">
@@ -876,6 +876,7 @@ function pintarConfig(r) {
   // Guardar emisor
   $('#btn-guardar-emisor').addEventListener('click', async () => {
     const body = { emisor: {
+      ambiente: $('#mh-ambiente').value,
       nit: $('#e-nit').value.trim(), nrc: $('#e-nrc').value.trim(),
       nombre: $('#e-nombre').value.trim(), nombre_comercial: $('#e-ncomercial').value.trim(),
       cod_actividad: $('#e-codact').value.trim(), desc_actividad: nombreActividad($('#e-codact').value.trim()),
@@ -888,12 +889,34 @@ function pintarConfig(r) {
     catch (e) { toast(e.error, 'error'); }
   });
 
-  // Guardar MH
+  // Cargar el perfil separado del ambiente seleccionado sin guardar cambios.
+  $('#mh-ambiente').addEventListener('change', async (event) => {
+    try {
+      const perfil = await API.configuracion(event.target.value);
+      pintarConfig(perfil);
+    } catch (e) { toast(e.error, 'error'); }
+  });
+
+  const leerMH = () => ({
+    ambiente: $('#mh-ambiente').value,
+    api_user: $('#mh-user').value.trim(),
+    api_pwd: $('#mh-pwd').value,
+  });
+
+  // Probar MH sin persistir el formulario ni exponer el token.
+  $('#btn-probar-mh').addEventListener('click', async () => {
+    try {
+      const r = await API.probarMH(leerMH());
+      toast(r.mensaje, 'success');
+    } catch (e) { toast(e.error, 'error'); }
+  });
+
+  // Guardar MH y activar ese perfil.
   $('#btn-guardar-mh').addEventListener('click', async () => {
-    const pwd = $('#mh-pwd').value;
-    const body = { mh: { ambiente: $('#mh-ambiente').value, api_user: $('#mh-user').value.trim() } };
+    const { ambiente, api_user, api_pwd: pwd } = leerMH();
+    const body = { mh: { ambiente, api_user } };
     if (pwd) body.mh.api_pwd = pwd;
-    try { await API.guardarConfig(body); toast('Credenciales MH guardadas', 'success'); }
+    try { await API.guardarConfig(body); toast('Perfil MH guardado y activado', 'success'); renderConfiguracion($('#app')); }
     catch (e) { toast(e.error, 'error'); }
   });
 
@@ -918,7 +941,7 @@ function pintarConfig(r) {
       return btoa(bin);
     });
     try {
-      const r = await API.subirFirma(b64, pwd);
+      const r = await API.subirFirma(b64, pwd, $('#mh-ambiente').value);
       toast(`Certificado cargado (${r.cert_subject || ''})`, 'success');
       renderConfiguracion($('#app'));
     } catch (e) { toast(e.error, 'error'); }
@@ -927,7 +950,7 @@ function pintarConfig(r) {
   const quitar = $('#btn-quitar-firma');
   if (quitar) quitar.addEventListener('click', async () => {
     if (!confirm('¿Quitar el certificado de firma? Los DTEs dejarán de transmitirse.')) return;
-    try { await API.eliminarFirma(); toast('Certificado eliminado', 'success'); renderConfiguracion($('#app')); }
+    try { await API.eliminarFirma($('#mh-ambiente').value); toast('Certificado eliminado', 'success'); renderConfiguracion($('#app')); }
     catch (e) { toast(e.error, 'error'); }
   });
 }

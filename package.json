@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "wrangler pages dev public --compatibility-date 2024-12-01",
     "migrate:local": "wrangler d1 migrations apply fac2026-db --local",
-    "migrate": "wrangler d1 migrations apply fac2026-db",
+    "migrate": "wrangler d1 migrations apply fac2026-db --remote",
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {

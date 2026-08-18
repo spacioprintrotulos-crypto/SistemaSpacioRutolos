@@ -51,8 +51,9 @@ const API = {
   anular(body) { return this.post('/api/dtes/anular', body); },
 
   // ---- Configuración ----
-  configuracion() { return this.get('/api/configuracion'); },
+  configuracion(ambiente) { return this.get('/api/configuracion', { ambiente }); },
   guardarConfig(body) { return this.put('/api/configuracion', body); },
-  subirFirma(archivoB64, password) { return this.post('/api/configuracion/firma', { archivoB64, password }); },
-  eliminarFirma() { return this.del('/api/configuracion/firma'); },
+  probarMH(body) { return this.post('/api/configuracion/probar-mh', body); },
+  subirFirma(archivoB64, password, ambiente) { return this.post('/api/configuracion/firma', { archivoB64, password, ambiente }); },
+  eliminarFirma(ambiente) { return this.del(`/api/configuracion/firma?ambiente=${encodeURIComponent(ambiente)}`); },
 };

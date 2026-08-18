@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }) {
 
     const emisor = await getEmisor(env.DB);
     const mh = await getMHConfig(env.DB);
-    if (!mh || !mh.firma_activa || !mh.api_user) {
+    if (!mh || !mh.firma_activa || !mh.firma_privada_pem || !mh.api_user || !mh.api_pwd) {
       return json({ ok: false, error: 'Credenciales MH no configuradas' }, 400);
     }
 

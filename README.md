@@ -94,8 +94,8 @@ O desde el dashboard de Cloudflare Pages, conectando el repositorio de GitHub
 1. Inicie sesión con `admin` / `fac2026`.
 2. En **Configuración**: cargue los datos del emisor (NIT, NRC, actividad CAT-019,
    dirección, códigos de establecimiento y punto de venta).
-3. Indique el **ambiente** (Pruebas `00` / Producción `01`) y las credenciales MH.
-4. Cargue el **certificado .crt** (PKCS#12) con su contraseña.
+3. Configure cada perfil de **ambiente** (Pruebas `00` y Producción `01`) con sus propias credenciales MH, ficha del emisor y certificado. El botón **Probar conexión** valida las credenciales sin guardarlas ni emitir un DTE.
+4. Use **Guardar y activar ambiente** solo después de una prueba exitosa. La emisión siempre usa el perfil activo.
 5. Si desea, ajuste los **correlativos** iniciales por tipo de DTE.
 
 Sin paso 4 (o sin credenciales), la emisión funciona en **modo SIMULADO**.

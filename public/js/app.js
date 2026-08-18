@@ -234,7 +234,7 @@ function renderFormulario(app) {
   app.innerHTML = appShell(`
     <div class="page-head">
       <div><div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / Emisión</div><h2>Nueva ${TITULOS[tipo]}</h2></div>
-      <div class="actions"><a href="#/" class="btn btn-ghost">Volver</a></div>
+      <div class="actions"><a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a></div>
     </div>
 
     <div id="form-area"></div>
@@ -588,9 +588,10 @@ let clientesCache = [];
 function renderClientes(app) {
   app.innerHTML = appShell(`
     <div class="page-head">
-      <div><div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / Clientes</div><h2>Clientes</h2></div>
+      <div><div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / Clientes</div><h2>Directorio de Clientes</h2></div>
       <div class="actions">
-        <input id="buscar-cliente" placeholder="Buscar por nombre, NIT o NRC..." style="padding:10px 14px;border:1.5px solid var(--borde);border-radius:12px;min-width:260px">
+        <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
+        <input id="buscar-cliente" placeholder="Buscar por nombre, NIT o NRC..." style="padding:10px 14px;border:1.5px solid var(--borde);border-radius:12px;min-width:240px">
         <button class="btn btn-verde" onclick="modalCliente()">+ Nuevo cliente</button>
       </div>
     </div>
@@ -704,6 +705,7 @@ function renderDTEs(app, filtroTipo) {
     <div class="page-head">
       <div><div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / DTEs</div><h2>Documentos emitidos</h2></div>
       <div class="actions">
+        <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
         <select id="f-tipo"><option value="">Todos los tipos</option>${state.cat.tipoDte.map((t) => `<option value="${t.codigo}" ${t.codigo === filtroTipo ? 'selected' : ''}>${esc(t.nombre)}</option>`).join('')}</select>
         <select id="f-estado"><option value="">Todos los estados</option><option>PROCESADO</option><option>SIMULADO</option><option>RECHAZADO</option><option>ANULADO</option></select>
         <button class="btn btn-secundario" onclick="cargarDTEs()">Filtrar</button>
@@ -825,6 +827,9 @@ function renderConfiguracion(app) {
   app.innerHTML = appShell(`
     <div class="page-head">
       <div><div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / Configuración</div><h2>Configuración del sistema</h2></div>
+      <div class="actions">
+        <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
+      </div>
     </div>
     <div id="cfg-body"><div class="center text-gris">Cargando...</div></div>`);
 
@@ -839,6 +844,17 @@ function pintarConfig(r) {
   const firmaOk = mh.firma_activa;
 
   $('#cfg-body').innerHTML = `
+    <div class="card flex" style="justify-content:space-between;align-items:center;margin-bottom:18px;padding:16px 22px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;flex-wrap:wrap;gap:12px">
+      <div>
+        <strong style="font-size:15px;color:#0f172a">Panel de Configuración Global</strong>
+        <div class="text-gris" style="font-size:12.5px">Puedes guardar todos los datos juntos con un solo clic o guardar cada sección por separado.</div>
+      </div>
+      <div class="flex" style="gap:10px;flex-wrap:wrap">
+        <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
+        <button class="btn btn-verde" id="btn-guardar-todo-top" style="display:inline-flex;align-items:center;gap:8px">💾 Guardar todo</button>
+      </div>
+    </div>
+
     <div class="config-status">
       <div class="config-item"><div class="cfg-label">Emisor</div><div class="cfg-value ${emisorOk ? 'cfg-ok' : 'cfg-warn'}">${emisorOk ? 'Configurado' : 'Pendiente'}</div></div>
       <div class="config-item"><div class="cfg-label">Firma electrónica</div><div class="cfg-value ${firmaOk ? 'cfg-ok' : 'cfg-warn'}">${firmaOk ? 'Cargada' : 'No cargada'}</div></div>
@@ -893,6 +909,17 @@ function pintarConfig(r) {
         ${correlativos.map((c) => `<div class="form-field"><label>${esc(nombreTipo(c.tipo_dte))}</label><input type="number" id="corr-${c.tipo_dte}" value="${c.ultimo}"></div>`).join('')}
       </div>
       <div class="mt"><button class="btn btn-secundario" id="btn-guardar-corr">Guardar correlativos</button></div>
+    </div>
+
+    <div class="card flex" style="justify-content:space-between;align-items:center;margin-top:20px;padding:20px 24px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:18px;flex-wrap:wrap;gap:14px">
+      <div>
+        <strong style="font-size:16px;display:block;color:#0f172a">¿Terminaste de configurar?</strong>
+        <span class="text-gris" style="font-size:13px">Guarda emisor, credenciales MH de este ambiente y correlativos simultáneamente.</span>
+      </div>
+      <div class="flex" style="gap:12px;flex-wrap:wrap">
+        <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
+        <button class="btn btn-verde" id="btn-guardar-todo" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;padding:12px 24px">💾 Guardar toda la configuración</button>
+      </div>
     </div>
   `;
 
@@ -954,6 +981,46 @@ function pintarConfig(r) {
     try { await API.guardarConfig({ correlativos: corr }); toast('Correlativos guardados', 'success'); }
     catch (e) { toast(e.error, 'error'); }
   });
+
+  // Guardado General (Emisor + MH + Correlativos en una sola operación)
+  const guardarTodoConfig = async () => {
+    const ambiente = $('#mh-ambiente').value;
+    const body = {
+      emisor: {
+        ambiente,
+        nit: $('#e-nit').value.trim(), nrc: $('#e-nrc').value.trim(),
+        nombre: $('#e-nombre').value.trim(), nombre_comercial: $('#e-ncomercial').value.trim(),
+        cod_actividad: $('#e-codact').value.trim(), desc_actividad: nombreActividad($('#e-codact').value.trim()),
+        tipo_establecimiento: $('#e-tipoest').value,
+        departamento: eDepto.value, municipio: $('#e-mun').querySelector('[name="municipio"]')?.value || '',
+        complemento: $('#e-comp').value.trim(), telefono: $('#e-tel').value.trim(), correo: $('#e-correo').value.trim(),
+        cod_estable_mh: $('#e-estmh').value.trim() || 'M001', cod_punto_venta_mh: $('#e-pvmh').value.trim() || 'P001',
+      },
+      mh: {
+        ambiente,
+        api_user: $('#mh-user').value.trim(),
+      },
+      correlativos: {},
+    };
+    const pwd = $('#mh-pwd').value;
+    if (pwd) body.mh.api_pwd = pwd;
+
+    correlativos.forEach((c) => {
+      const el = $(`#corr-${c.tipo_dte}`);
+      if (el) body.correlativos[c.tipo_dte] = Number(el.value) || 0;
+    });
+
+    try {
+      await API.guardarConfig(body);
+      toast('Toda la configuración ha sido guardada con éxito', 'success');
+      renderConfiguracion($('#app'));
+    } catch (e) {
+      toast(e.error || 'Error al guardar la configuración', 'error');
+    }
+  };
+
+  $('#btn-guardar-todo-top')?.addEventListener('click', guardarTodoConfig);
+  $('#btn-guardar-todo')?.addEventListener('click', guardarTodoConfig);
 
   // Firma
   const subir = $('#btn-subir-firma');

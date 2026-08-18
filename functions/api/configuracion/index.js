@@ -39,7 +39,7 @@ export async function onRequestPut({ request, env }) {
         `INSERT INTO emisor_perfiles (ambiente, nit, nrc, nombre, nombre_comercial, cod_actividad, desc_actividad,
            tipo_establecimiento, departamento, municipio, complemento, telefono, correo,
            cod_estable_mh, cod_estable, cod_punto_venta_mh, cod_punto_venta, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
          ON CONFLICT(ambiente) DO UPDATE SET
            nit=excluded.nit, nrc=excluded.nrc, nombre=excluded.nombre, nombre_comercial=excluded.nombre_comercial,
            cod_actividad=excluded.cod_actividad, desc_actividad=excluded.desc_actividad,

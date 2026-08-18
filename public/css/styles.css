@@ -90,8 +90,21 @@ input, select, textarea { font-family: inherit; }
 }
 .btn-secundario { background: #eff6ff; color: var(--azul); border: 1px solid #dbeafe; }
 .btn-verde { background: linear-gradient(135deg, #16a34a, #4ade80); color: #fff; box-shadow: 0 10px 22px rgba(22,163,74,.28); }
-.btn-rojo { background: #fef2f2; color: var(--rojo); border: 1px solid #fecaca; }
 .btn-ghost { background: transparent; color: var(--gris); border: 1px solid var(--borde); }
+.btn-volver {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: #fff; color: #1e293b; border: 1.5px solid #cbd5e1;
+  padding: 10px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 700;
+  text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,.04);
+  transition: all .15s ease;
+}
+.btn-volver:hover {
+  background: #f8fafc; border-color: var(--azul); color: var(--azul);
+  transform: translateX(-2px); box-shadow: 0 4px 12px rgba(13,71,201,.12);
+}
+.btn-volver svg {
+  width: 17px; height: 17px; stroke-width: 2.5;
+}
 
 .alert {
   padding: 12px 14px; border-radius: 12px; font-size: 13.5px; font-weight: 600; margin-bottom: 16px;

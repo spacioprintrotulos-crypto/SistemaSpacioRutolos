@@ -62,5 +62,5 @@ Nota: PowerShell 5.1 (`Invoke-RestMethod`) falla con el server local ("protocol 
 
 ## Reglas
 - No usar emojis en archivos. No exponer secretos. `*.pem`/`*.crt`/`secrets/` en `.gitignore`.
-- NO hacer commit salvo que el usuario lo pida explícitamente.
+- **Auto-Sync obligatorio**: Siempre que se realicen cambios o mejoras solicitados por el usuario, se debe desplegar a Cloudflare (`npm.cmd run deploy`), migrar D1 remoto si aplica (`npm.cmd run migrate`) y hacer commit + push a GitHub (`git push origin main`).
 - Si se cambia un esquema DTE, revalidar contra `schemas/DTE-*.json` con `node validar-dte.mjs [id]` (ajv@6, `multipleOfPrecision: 7` — con 8 falla por flotantes como 1.15 — y eliminando los bloques `if/then` viejos de municipio del CAT-013 pre-v1.1). Ojo: el esquema local puede ir por detrás del MH en vivo; la respuesta del MH es la autoridad final.

@@ -19,6 +19,19 @@ export async function ensureSeed(DB) {
       .run();
     cfg = { valor: null };
   }
+  // Garantiza credenciales de pruebas por defecto para ambiente '00'
+  try {
+    await DB.prepare(`
+      INSERT INTO mh_perfiles (ambiente, api_user, api_pwd, updated_at)
+      VALUES ('00', '12012608691018', 'Superspacio.202601', datetime('now'))
+      ON CONFLICT(ambiente) DO UPDATE SET
+        api_user = COALESCE(mh_perfiles.api_user, '12012608691018'),
+        api_pwd  = COALESCE(mh_perfiles.api_pwd, 'Superspacio.202601')
+      WHERE mh_perfiles.ambiente = '00'
+    `).run();
+  } catch (e) {
+    // Si la tabla aún no existe durante la primera migración
+  }
 }
 
 export async function getSessionSecret(DB) {

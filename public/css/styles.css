@@ -26,7 +26,14 @@ button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
 
 /* ---------- Login ---------- */
-.login-page { display: flex; min-height: 100vh; }
+.login-page { 
+  display: flex; 
+  min-height: 100vh; 
+  overflow: hidden; 
+  background: var(--fondo);
+  position: relative;
+}
+
 .login-left {
   flex: 1.1;
   position: relative;
@@ -35,7 +42,24 @@ input, select, textarea { font-family: inherit; }
     url('../img/Executive_invoicing_2K_202608172015.jpeg') center/cover no-repeat;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; padding: 40px;
+  animation: heroContract 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes heroContract {
+  0% {
+    flex: 100 1 100%;
+    transform: scale(1.05);
+  }
+  30% {
+    flex: 100 1 100%;
+    transform: scale(1.03);
+  }
+  100% {
+    flex: 1.1 1 54%;
+    transform: scale(1);
+  }
+}
+
 .login-left::before {
   content: ""; position: absolute; inset: 0;
   background:
@@ -44,6 +68,7 @@ input, select, textarea { font-family: inherit; }
     radial-gradient(circle at 70% 82%, rgba(255,255,255,.10), transparent 20%);
   pointer-events: none;
 }
+
 .login-left-content { 
   position: relative; z-index: 2; color: #fff; max-width: 480px;
   background: rgba(15, 23, 42, 0.22);
@@ -52,7 +77,20 @@ input, select, textarea { font-family: inherit; }
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: heroContentPop 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
+
+@keyframes heroContentPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .login-left-content h1 { font-size: clamp(28px, 3.4vw, 42px); font-weight: 900; line-height: 1.15; margin-bottom: 14px; text-shadow: 0 2px 10px rgba(0,0,0,.15); }
 .login-left-content p { color: rgba(255,255,255,.95); font-weight: 400; font-size: 15.5px; line-height: 1.5; }
 .login-brand-mark {
@@ -68,16 +106,62 @@ input, select, textarea { font-family: inherit; }
 .login-brand-name { font-size: 20px; font-weight: 800; letter-spacing: .4px; }
 
 .login-right {
-  flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px;
+  flex: 1; 
+  display: flex; 
+  flex-direction: column;
+  align-items: center; 
+  justify-content: center; 
+  padding: 40px;
+  animation: loginPanelReveal 1.3s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
 }
-.login-card {
+
+@keyframes loginPanelReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(60px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.login-card-wrapper {
   width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
   background: #fff; border: 1px solid var(--borde);
   border-radius: 22px; padding: 34px 32px;
-  box-shadow: var(--sombra);
+  box-shadow: 0 15px 35px rgba(15, 23, 42, .08);
+  transition: transform .2s, box-shadow .2s;
+}
+.login-card:hover {
+  box-shadow: 0 20px 45px rgba(15, 23, 42, .12);
 }
 .login-card h2 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
 .login-card .login-sub { color: var(--gris); font-size: 14px; margin-bottom: 24px; }
+
+.login-credits {
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+  text-align: center;
+  user-select: none;
+  animation: fadeInCredits 1.2s ease 0.6s both;
+}
+
+@keyframes fadeInCredits {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 0.85; transform: none; }
+}
+
 .form-field { margin-bottom: 16px; }
 .form-field label { display: block; font-size: 12px; font-weight: 700; color: var(--gris); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
 .form-field input, .form-field select, .form-field textarea {

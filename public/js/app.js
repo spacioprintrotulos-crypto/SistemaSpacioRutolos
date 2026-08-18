@@ -102,19 +102,22 @@ function renderLogin(app) {
       </div>
     </div>
     <div class="login-right">
-      <div class="login-card">
-        <h2>Iniciar sesión</h2>
-        <p class="login-sub">Ingresa tus credenciales para continuar</p>
-        <div id="login-alert"></div>
-        <div class="form-field">
-          <label>Usuario</label>
-          <input id="login-user" type="text" autocomplete="username" placeholder="Tu usuario">
+      <div class="login-card-wrapper">
+        <div class="login-card">
+          <h2>Iniciar sesión</h2>
+          <p class="login-sub">Ingresa tus credenciales para continuar</p>
+          <div id="login-alert"></div>
+          <div class="form-field">
+            <label>Usuario</label>
+            <input id="login-user" type="text" autocomplete="username" placeholder="Tu usuario">
+          </div>
+          <div class="form-field">
+            <label>Contraseña</label>
+            <input id="login-pass" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+          </div>
+          <button class="btn btn-primary" id="login-btn">Entrar</button>
         </div>
-        <div class="form-field">
-          <label>Contraseña</label>
-          <input id="login-pass" type="password" autocomplete="current-password" placeholder="Tu contraseña">
-        </div>
-        <button class="btn btn-primary" id="login-btn">Entrar</button>
+        <div class="login-credits">by Jovas-Motion Designer &amp; Desarrollo.</div>
       </div>
     </div>
   </div>`;

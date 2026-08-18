@@ -583,58 +583,63 @@ pre.json-view {
 /* El contenedor del documento tipo hoja carta */
 .dte-document {
   --dte-primary: #1b365d;
-  width: 820px;
-  min-height: 1060px;
+  width: 740px;
+  max-width: 100%;
+  min-height: 1000px;
   background: #ffffff !important;
   color: #111827 !important;
   font-family: 'Arial', 'Helvetica', sans-serif !important;
-  font-size: 10px !important;
-  line-height: 1.35 !important;
-  padding: 24px 28px !important;
-  box-shadow: 0 12px 35px rgba(0,0,0,0.15);
-  border: 1px solid #cbd5e1;
-  box-sizing: border-box;
+  font-size: 9.2px !important;
+  line-height: 1.3 !important;
+  padding: 16px 18px !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  border: 1.5px solid #cbd5e1;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
   display: flex;
   flex-direction: column;
 }
 
 .dte-document * {
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 /* Encabezado */
 .dte-header {
   border-bottom: 1.5px solid #0f172a;
-  padding-bottom: 8px;
-  margin-bottom: 10px;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .dte-header-top {
   display: grid;
-  grid-template-columns: 140px 1fr 70px;
+  grid-template-columns: 150px 1fr 65px;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .dte-logo-area {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  overflow: hidden;
 }
 
 .dte-logo-img {
-  max-height: 52px;
-  max-width: 140px;
+  max-height: 48px;
+  max-width: 145px;
   object-fit: contain;
 }
 
 .dte-logo-badge {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   color: var(--dte-primary);
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
   text-transform: uppercase;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .dte-title-area {
@@ -642,7 +647,7 @@ pre.json-view {
 }
 
 .dte-main-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: #374151;
@@ -650,46 +655,48 @@ pre.json-view {
 }
 
 .dte-doc-type {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 900;
   color: var(--dte-primary);
   margin-top: 2px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .dte-version-badge {
   text-align: right;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #4b5563;
 }
 
 .dte-meta-grid {
   display: grid;
-  grid-template-columns: 1.2fr 125px 1.2fr;
+  grid-template-columns: 1.35fr 105px 1.15fr;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 .dte-meta-col-left, .dte-meta-col-right {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  font-size: 9.5px;
+  gap: 2.5px;
+  font-size: 8.8px;
 }
 
 .dte-meta-row {
   display: flex;
   gap: 4px;
+  line-height: 1.2;
 }
 
 .dte-meta-row .lbl {
   color: #4b5563;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .dte-meta-row .val {
@@ -708,24 +715,24 @@ pre.json-view {
 }
 
 .dte-qr-box svg {
-  width: 100px !important;
-  height: 100px !important;
-  border: 1px solid #e2e8f0;
+  width: 92px !important;
+  height: 92px !important;
+  border: 1px solid #cbd5e1;
   background: #ffffff;
-  padding: 3px;
+  padding: 2px;
 }
 
 /* Cajas Emisor y Receptor */
 .dte-parties-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .dte-party-box {
   border: 1.5px solid #0f172a;
-  border-radius: 6px;
+  border-radius: 5px;
   overflow: hidden;
 }
 
@@ -734,28 +741,29 @@ pre.json-view {
   color: #ffffff;
   font-weight: 800;
   text-align: center;
-  font-size: 10px;
-  padding: 3px 6px;
+  font-size: 9.5px;
+  padding: 2.5px 4px;
   letter-spacing: 0.8px;
 }
 
 .dte-party-body {
-  padding: 6px 8px;
+  padding: 5px 7px;
   display: flex;
   flex-direction: column;
-  gap: 2.5px;
-  font-size: 9px;
+  gap: 2px;
+  font-size: 8.6px;
 }
 
 .party-row {
   display: flex;
   gap: 4px;
+  line-height: 1.2;
 }
 
 .party-row-half {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
 }
 
 .p-lbl {
@@ -766,6 +774,7 @@ pre.json-view {
 
 .p-val {
   color: #111827;
+  word-break: break-word;
 }
 
 .p-val.bold {
@@ -777,40 +786,41 @@ pre.json-view {
   border: 1px solid #0f172a;
   border-radius: 5px;
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .dte-mini-header {
   background: #f1f5f9;
   font-weight: 700;
-  font-size: 8.5px;
+  font-size: 8.2px;
   text-align: center;
-  padding: 2.5px 4px;
+  padding: 2px 4px;
   border-bottom: 1px solid #cbd5e1;
   color: #334155;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .dte-mini-body {
-  padding: 4px 8px;
-  font-size: 9px;
+  padding: 3.5px 6px;
+  font-size: 8.5px;
 }
 
 .dte-mini-body.flex-row {
   display: flex;
   justify-content: space-around;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dte-table-mini {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8.5px;
+  font-size: 8.2px;
+  table-layout: fixed;
 }
 
 .dte-table-mini th {
   background: #f8fafc;
-  padding: 3px 6px;
+  padding: 2.5px 4px;
   border: 1px solid #cbd5e1;
   font-weight: 700;
   text-align: center;
@@ -818,64 +828,69 @@ pre.json-view {
 }
 
 .dte-table-mini td {
-  padding: 3px 6px;
+  padding: 2.5px 4px;
   border: 1px solid #e2e8f0;
   text-align: center;
+  word-break: break-word;
 }
 
 /* Tabla del Cuerpo de Documento */
 .dte-items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9px;
-  margin-bottom: 8px;
+  font-size: 8.3px;
+  margin-bottom: 6px;
   border: 1.5px solid #0f172a;
+  table-layout: fixed;
 }
 
 .dte-items-table th {
   background: #f1f5f9;
   color: #0f172a;
   font-weight: 800;
-  padding: 5px 4px;
+  padding: 4px 2px;
   border: 1px solid #0f172a;
   text-align: center;
-  font-size: 8.5px;
+  font-size: 7.8px;
+  line-height: 1.15;
+  word-break: break-word;
 }
 
 .dte-items-table td {
-  padding: 4px 5px;
+  padding: 3px 2.5px;
   border: 1px solid #cbd5e1;
   vertical-align: middle;
+  word-break: break-word;
 }
 
-.dte-items-table .col-num { width: 28px; text-align: center; font-weight: 700; }
-.dte-items-table .col-cant { width: 50px; text-align: center; }
-.dte-items-table .col-uni { width: 55px; text-align: center; }
-.dte-items-table .col-cod { width: 60px; text-align: center; }
-.dte-items-table .col-desc { text-align: left; }
-.dte-items-table .col-precio { width: 65px; text-align: right; }
-.dte-items-table .col-descu { width: 60px; text-align: right; }
-.dte-items-table .col-nosuj { width: 65px; text-align: right; }
-.dte-items-table .col-exenta { width: 65px; text-align: right; }
-.dte-items-table .col-gravada { width: 70px; text-align: right; font-weight: 700; }
+.dte-items-table .col-num { width: 4.5%; text-align: center; font-weight: 700; }
+.dte-items-table .col-cant { width: 7.5%; text-align: center; }
+.dte-items-table .col-uni { width: 7.5%; text-align: center; }
+.dte-items-table .col-cod { width: 8.5%; text-align: center; }
+.dte-items-table .col-desc { width: 34%; text-align: left; }
+.dte-items-table .col-precio { width: 7.5%; text-align: right; }
+.dte-items-table .col-descu { width: 7.5%; text-align: right; }
+.dte-items-table .col-nosuj { width: 7.5%; text-align: right; }
+.dte-items-table .col-exenta { width: 7.5%; text-align: right; }
+.dte-items-table .col-gravada { width: 8%; text-align: right; font-weight: 700; }
 
 /* Resumen inferior */
 .dte-bottom-grid {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: 1.12fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .dte-legal-box {
   border: 1px solid #0f172a;
-  border-radius: 6px;
-  padding: 8px 10px;
+  border-radius: 5px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 9px;
-  margin-bottom: 8px;
+  gap: 3px;
+  font-size: 8.4px;
+  margin-bottom: 6px;
   background: #fafafa;
 }
 
@@ -892,16 +907,16 @@ pre.json-view {
 .dte-signatures-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sig-box {
   border: 1px solid #cbd5e1;
-  border-radius: 5px;
-  padding: 6px;
-  font-size: 8.5px;
+  border-radius: 4px;
+  padding: 5px;
+  font-size: 8px;
   color: #4b5563;
-  min-height: 48px;
+  min-height: 42px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -910,13 +925,27 @@ pre.json-view {
 .dte-summary-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8.8px;
+  font-size: 8px;
   border: 1.5px solid #0f172a;
+  table-layout: fixed;
 }
 
 .dte-summary-table td {
-  padding: 2.5px 6px;
+  padding: 2px 4px;
   border: 1px solid #cbd5e1;
+  vertical-align: middle;
+}
+
+.dte-summary-table .col-lbl {
+  width: 68%;
+  text-align: left;
+}
+
+.dte-summary-table .col-val {
+  width: 32%;
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .dte-summary-table .num {
@@ -931,22 +960,23 @@ pre.json-view {
 .dte-summary-table .row-total {
   background: #f8fafc;
   font-weight: 900;
-  font-size: 10px;
+  font-size: 9.5px;
 }
 
 .dte-summary-table .grand-total {
   color: var(--dte-primary);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 900;
+  text-align: right;
 }
 
 .dte-footer {
   margin-top: auto;
   border-top: 1px solid #cbd5e1;
-  padding-top: 6px;
+  padding-top: 4px;
   display: flex;
   justify-content: space-between;
-  font-size: 8.5px;
+  font-size: 8px;
   color: #6b7280;
 }
 
@@ -959,7 +989,7 @@ pre.json-view {
     margin: 0 !important;
   }
 
-  #app, #toast-root, .dte-viewer-toolbar, .modal-backdrop::before {
+  #app, #toast-root, .dte-viewer-toolbar {
     display: none !important;
   }
 
@@ -967,6 +997,8 @@ pre.json-view {
     position: static !important;
     background: none !important;
     padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
   }
 
   .dte-viewer-modal {
@@ -975,32 +1007,37 @@ pre.json-view {
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
 
   .dte-viewer-content {
     background: none !important;
     padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
   }
 
   .dte-document {
     width: 100% !important;
     max-width: 100% !important;
     box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    border: 1.5px solid #000 !important;
+    padding: 8px 12px !important;
+    margin: 0 auto !important;
     page-break-after: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   @page {
     size: letter portrait;
-    margin: 8mm;
+    margin: 6mm;
   }
 }
 
 @media (max-width: 760px) {
   .login-left { display: none; }
   .app-top { padding: 14px 16px; }
-  .dte-document { width: 100% !important; min-width: 720px; }
+  .dte-document { width: 100% !important; }
 }
+
 

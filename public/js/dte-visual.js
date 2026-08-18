@@ -7,7 +7,14 @@
 (function(root) {
   // ---------- Helpers de formato ----------
   const fmtMoney = (n) => `$ ${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const cleanStr = (s) => String(s || '').trim();
+  
+  const cleanStr = (s) => {
+    if (s === null || s === undefined) return '';
+    const str = String(s).trim();
+    if (str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') return '';
+    return str;
+  };
+  
   const safeStr = (s, def = '—') => cleanStr(s) || def;
 
   function sanitizarNombreArchivo(str) {
@@ -83,15 +90,16 @@
 
     // URL oficial de consulta QR según el manual técnico sección 5
     const urlQR = `https://admin.factura.gob.sv/consultaPublica?ambiente=${ambiente}&codGen=${codGen}&fechaEmi=${fecEmi}`;
-    const qrSvg = typeof root.generarQrSvg === 'function' ? root.generarQrSvg(urlQR, 115) : '';
+    const qrSvg = typeof root.generarQrSvg === 'function' ? root.generarQrSvg(urlQR, 95) : '';
 
     const logoEmpresa = opciones.logo || localStorage.getItem('fac2026_logo_empresa') || '';
     const colorPrimario = opciones.colorPrimario || localStorage.getItem('fac2026_color_primario') || '#1b365d';
+    const logoBadge = cleanStr(emisor.nombreComercial) || cleanStr(emisor.nombre) || 'SPACIO ROTULOS';
 
     // Dirección formateada
     const dirEmisor = emisor.direccion
       ? `${emisor.direccion.complemento || ''}, San Salvador, El Salvador`
-      : 'El Salvador';
+      : 'San Salvador, El Salvador';
     const dirReceptor = receptor.direccion
       ? `${receptor.direccion.complemento || ''}`
       : 'El Salvador';
@@ -154,7 +162,7 @@
       <div class="dte-header">
         <div class="dte-header-top">
           <div class="dte-logo-area">
-            ${logoEmpresa ? `<img src="${logoEmpresa}" class="dte-logo-img" alt="Logo de la Empresa">` : `<div class="dte-logo-badge">${safeStr(emisor.nombreComercial || emisor.nombre, 'FAC2026')}</div>`}
+            ${logoEmpresa ? `<img src="${logoEmpresa}" class="dte-logo-img" alt="Logo de la Empresa">` : `<div class="dte-logo-badge">${logoBadge}</div>`}
           </div>
           <div class="dte-title-area">
             <h1 class="dte-main-title">DOCUMENTO TRIBUTARIO ELECTRÓNICO</h1>
@@ -165,9 +173,9 @@
 
         <div class="dte-meta-grid">
           <div class="dte-meta-col-left">
-            <div class="dte-meta-row"><span class="lbl">Código de Generación:</span> <span class="val bold">${safeStr(ident.codigoGeneracion)}</span></div>
-            <div class="dte-meta-row"><span class="lbl">Número de Control:</span> <span class="val bold">${safeStr(ident.numeroControl)}</span></div>
-            <div class="dte-meta-row"><span class="lbl">Sello de Recepción:</span> <span class="val">${safeStr(sello)}</span></div>
+            <div class="dte-meta-row"><span class="lbl">Código de Generación:</span> <span class="val bold" style="font-size:8.2px;letter-spacing:-0.2px">${safeStr(ident.codigoGeneracion)}</span></div>
+            <div class="dte-meta-row"><span class="lbl">Número de Control:</span> <span class="val bold" style="font-size:8.2px">${safeStr(ident.numeroControl)}</span></div>
+            <div class="dte-meta-row"><span class="lbl">Sello de Recepción:</span> <span class="val" style="font-size:8px">${safeStr(sello)}</span></div>
           </div>
           <div class="dte-qr-box">
             ${qrSvg}
@@ -175,7 +183,7 @@
           <div class="dte-meta-col-right">
             <div class="dte-meta-row"><span class="lbl">Modelo de Facturación:</span> <span class="val">Previo</span></div>
             <div class="dte-meta-row"><span class="lbl">Tipo de Transmisión:</span> <span class="val">Normal</span></div>
-            <div class="dte-meta-row"><span class="lbl">Fecha y Hora de Generación:</span> <span class="val bold">${safeStr(ident.fecEmi)} ${safeStr(ident.horEmi)}</span></div>
+            <div class="dte-meta-row"><span class="lbl">Fecha y Hora:</span> <span class="val bold">${safeStr(ident.fecEmi)} ${safeStr(ident.horEmi)}</span></div>
           </div>
         </div>
       </div>
@@ -193,10 +201,10 @@
             <div class="party-row"><span class="p-lbl">Actividad económica:</span> <span class="p-val">${safeStr(emisor.descActividad || 'Comercio / Servicios')}</span></div>
             <div class="party-row"><span class="p-lbl">Dirección:</span> <span class="p-val">${dirEmisor}</span></div>
             <div class="party-row-half">
-              <div><span class="p-lbl">Número de teléfono:</span> <span class="p-val">${safeStr(emisor.telefono)}</span></div>
+              <div><span class="p-lbl">Número de teléfono:</span> <span class="p-val">${safeStr(emisor.telefono, '-')}</span></div>
               <div><span class="p-lbl">Tipo establecimiento:</span> <span class="p-val">Casa Matriz</span></div>
             </div>
-            <div class="party-row"><span class="p-lbl">Correo electrónico:</span> <span class="p-val">${safeStr(emisor.correo)}</span></div>
+            <div class="party-row"><span class="p-lbl">Correo electrónico:</span> <span class="p-val">${safeStr(emisor.correo, '-')}</span></div>
             <div class="party-row"><span class="p-lbl">Nombre Comercial:</span> <span class="p-val">${safeStr(emisor.nombreComercial, '-')}</span></div>
           </div>
         </div>
@@ -311,54 +319,60 @@
         <div class="dte-bottom-right">
           <table class="dte-summary-table">
             <tr>
-              <td>Suma de Ventas:</td>
-              <td class="num">${Number(resumen.totalNoSuj || 0).toFixed(2)}</td>
-              <td class="num">${Number(resumen.totalExenta || 0).toFixed(2)}</td>
-              <td class="num bold">${Number(resumen.totalGravada || 0).toFixed(2)}</td>
+              <td class="col-lbl">Suma de Ventas No Sujetas:</td>
+              <td class="col-val">${fmtMoney(resumen.totalNoSuj || 0)}</td>
             </tr>
             <tr>
-              <td colspan="3">Suma Total de Operaciones:</td>
-              <td class="num bold">${Number(resumen.subTotalVentas || resumen.totalGravada || 0).toFixed(2)}</td>
+              <td class="col-lbl">Suma de Ventas Exentas:</td>
+              <td class="col-val">${fmtMoney(resumen.totalExenta || 0)}</td>
             </tr>
             <tr>
-              <td colspan="3">Monto global Desc., Rebajas y otros a ventas no sujetas:</td>
-              <td class="num">0.00</td>
+              <td class="col-lbl">Suma de Ventas Gravadas:</td>
+              <td class="col-val bold">${fmtMoney(resumen.totalGravada || 0)}</td>
             </tr>
             <tr>
-              <td colspan="3">Monto global Desc., Rebajas y otros a ventas Exentas:</td>
-              <td class="num">0.00</td>
+              <td class="col-lbl">Suma Total de Operaciones:</td>
+              <td class="col-val bold">${fmtMoney(resumen.subTotalVentas || resumen.totalGravada || 0)}</td>
             </tr>
             <tr>
-              <td colspan="3">Monto global Desc., Rebajas y otros a ventas gravadas:</td>
-              <td class="num">0.00</td>
+              <td class="col-lbl">Monto global Desc. No Sujetas:</td>
+              <td class="col-val">$ 0.00</td>
+            </tr>
+            <tr>
+              <td class="col-lbl">Monto global Desc. Exentas:</td>
+              <td class="col-val">$ 0.00</td>
+            </tr>
+            <tr>
+              <td class="col-lbl">Monto global Desc. Gravadas:</td>
+              <td class="col-val">$ 0.00</td>
             </tr>
             ${tipo === '03' || tipo === '05' ? `
             <tr>
-              <td colspan="3">Impuesto al Valor Agregado 13%:</td>
-              <td class="num bold">${Number(resumen.tributos?.[0]?.valor || (Number(resumen.totalGravada || 0) * 0.13)).toFixed(2)}</td>
+              <td class="col-lbl">Impuesto al Valor Agregado 13%:</td>
+              <td class="col-val bold">${fmtMoney(resumen.tributos?.[0]?.valor || (Number(resumen.totalGravada || 0) * 0.13))}</td>
             </tr>` : ''}
             <tr>
-              <td colspan="3">Sub-Total:</td>
-              <td class="num bold">${Number(resumen.subTotal || resumen.totalGravada || 0).toFixed(2)}</td>
+              <td class="col-lbl">Sub-Total:</td>
+              <td class="col-val bold">${fmtMoney(resumen.subTotal || resumen.totalGravada || 0)}</td>
             </tr>
             ${Number(resumen.ivaPerci1 || 0) > 0 ? `
             <tr>
-              <td colspan="3">IVA Percibido:</td>
-              <td class="num">${Number(resumen.ivaPerci1).toFixed(2)}</td>
+              <td class="col-lbl">IVA Percibido:</td>
+              <td class="col-val">${fmtMoney(resumen.ivaPerci1)}</td>
             </tr>` : ''}
             ${Number(resumen.ivaRete1 || 0) > 0 ? `
             <tr>
-              <td colspan="3">IVA Retenido:</td>
-              <td class="num">${Number(resumen.ivaRete1).toFixed(2)}</td>
+              <td class="col-lbl">IVA Retenido:</td>
+              <td class="col-val">-${fmtMoney(resumen.ivaRete1)}</td>
             </tr>` : ''}
             ${Number(resumen.reteRenta || 0) > 0 ? `
             <tr>
-              <td colspan="3">Retención de Renta:</td>
-              <td class="num">${Number(resumen.reteRenta).toFixed(2)}</td>
+              <td class="col-lbl">Retención de Renta:</td>
+              <td class="col-val">-${fmtMoney(resumen.reteRenta)}</td>
             </tr>` : ''}
             <tr class="row-total">
-              <td colspan="3">${tipo === '05' ? 'Monto Total de la Operación:' : 'Total a Pagar:'}</td>
-              <td class="num grand-total">${fmtMoney(totalPagar)}</td>
+              <td class="col-lbl">${tipo === '05' ? 'Monto Total de la Operación:' : 'Total a Pagar:'}</td>
+              <td class="col-val grand-total">${fmtMoney(totalPagar)}</td>
             </tr>
           </table>
         </div>
@@ -488,7 +502,14 @@
         margin: [5, 5, 5, 5],
         filename: `${cleanFileName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 760
+        },
         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
 
@@ -516,7 +537,7 @@
     tempDiv.style.position = 'fixed';
     tempDiv.style.left = '-9999px';
     tempDiv.style.top = '0';
-    tempDiv.style.width = '820px';
+    tempDiv.style.width = '740px';
     tempDiv.innerHTML = renderDteHtml(dte, opciones);
     document.body.appendChild(tempDiv);
 

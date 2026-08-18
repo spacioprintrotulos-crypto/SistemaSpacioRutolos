@@ -340,9 +340,10 @@ function renderFormulario(app) {
     <div class="card">
       <h3>Resumen</h3>
       <div class="resumen-box" id="resumen"></div>
-      <div class="mt">
-        <button class="btn btn-verde" id="btn-emitir">Emitir DTE</button>
-        <button class="btn btn-secundario" onclick="location.hash='#/'">Cancelar</button>
+      <div class="mt flex" style="gap:10px;flex-wrap:wrap">
+        <button class="btn btn-verde" id="btn-emitir">🚀 Emitir DTE</button>
+        <button class="btn btn-secundario" type="button" id="btn-vista-previa-emision">👁️ Vista Previa del Comprobante</button>
+        <button class="btn btn-ghost" onclick="location.hash='#/'">Cancelar</button>
       </div>
     </div>
   `;
@@ -384,6 +385,88 @@ function renderFormulario(app) {
   bindCascada(area);
 
   $('#btn-emitir').addEventListener('click', emitir);
+
+  $('#btn-vista-previa-emision')?.addEventListener('click', async () => {
+    const form = $('#receptor-form');
+    const val = (n) => form.querySelector(`[name="${n}"]`)?.value?.trim() || '';
+    const itemsValidos = state.items.filter((it) => it.descripcion).map((it, idx) => ({
+      numItem: idx + 1,
+      tipoItem: 1,
+      codigo: `ITEM${idx + 1}`,
+      descripcion: it.descripcion,
+      cantidad: Number(it.cantidad || 1),
+      uniMedida: Number(it.uniMedida || 59),
+      precioUni: Number(it.precioUni || 0),
+      montoDescu: Number(it.montoDescu || 0),
+      ventaGravada: it.tipoVenta === 'gravada' ? (Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0)) : 0,
+      ventaExenta: it.tipoVenta === 'exenta' ? (Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0)) : 0,
+      ventaNoSuj: it.tipoVenta === 'nosuj' ? (Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0)) : 0,
+    }));
+    if (!itemsValidos.length) return toast('Agregue al menos un ítem para previsualizar', 'error');
+
+    let cfgEmisor = {};
+    try {
+      const cfg = await API.configuracion();
+      cfgEmisor = cfg.emisor || {};
+    } catch {}
+
+    const totalGrav = itemsValidos.reduce((acc, it) => acc + (it.ventaGravada || 0), 0);
+    const totalEx = itemsValidos.reduce((acc, it) => acc + (it.ventaExenta || 0), 0);
+    const totalNoS = itemsValidos.reduce((acc, it) => acc + (it.ventaNoSuj || 0), 0);
+    const subVentas = totalGrav + totalEx + totalNoS;
+    const conIva = tipo === '01';
+    const ivaVal = conIva ? ((totalGrav / 1.13) * 0.13) : (totalGrav * 0.13);
+    const totPagar = subVentas + (conIva ? 0 : ivaVal);
+
+    const dtePreview = {
+      identificacion: {
+        version: tipo === '01' ? 1 : 3,
+        ambiente: '00',
+        tipoDte: tipo,
+        numeroControl: `DTE-${tipo}-M001P001-000000000000000`,
+        codigoGeneracion: '00000000-0000-0000-0000-000000000000',
+        fecEmi: new Date().toISOString().slice(0, 10),
+        horEmi: new Date().toTimeString().slice(0, 8),
+      },
+      emisor: {
+        nombre: cfgEmisor.nombre || 'EVER ODIR RAMOS PORTILLO',
+        nit: cfgEmisor.nit || '12012608691018',
+        nrc: cfgEmisor.nrc || '899798',
+        descActividad: cfgEmisor.desc_actividad || 'Comercio y Publicidad',
+        direccion: { complemento: cfgEmisor.complemento || '7 Avenida Norte, San Salvador' },
+        telefono: cfgEmisor.telefono || '72108369',
+        correo: cfgEmisor.correo || 'spacioprintrotulos@gmail.com',
+        nombreComercial: cfgEmisor.nombre_comercial || 'Spacio Rotulos',
+      },
+      receptor: {
+        nombre: val('nombre') || 'CLIENTE EJEMPLO',
+        nit: val('num_documento') || '000000000',
+        nrc: val('nrc') || null,
+        descActividad: val('desc_actividad') || '-',
+        direccion: { complemento: val('complemento') || 'San Salvador' },
+        telefono: val('telefono') || '-',
+        correo: val('correo') || '-',
+        nombreComercial: val('nombre_comercial') || '-',
+      },
+      cuerpoDocumento: itemsValidos,
+      resumen: {
+        totalNoSuj: totalNoS,
+        totalExenta: totalEx,
+        totalGravada: totalGrav,
+        subTotalVentas: subVentas,
+        subTotal: subVentas,
+        tributos: tipo === '03' || tipo === '05' ? [{ codigo: '20', valor: ivaVal }] : null,
+        montoTotalOperacion: totPagar,
+        totalPagar: totPagar,
+        totalLetras: 'VISTA PREVIA — TOTAL ESTIMADO',
+        condicionOperacion: Number($('#condicion').value || 1),
+      }
+    };
+
+    if (typeof DTEVisual !== 'undefined') {
+      DTEVisual.previsualizar(dtePreview, { sello: 'BORRADOR — VISTA PREVIA NO FISCAL' });
+    }
+  });
 }
 
 function renderReceptorForm(area) {
@@ -583,37 +666,78 @@ async function emitir() {
 
 function mostrarResultado(r) {
   const ok = r.ok;
+  state.ultimoResultado = r;
+  const clientName = r.dte?.receptor?.nombre || 'CLIENTE';
+  const tipoNom = DTEVisual ? DTEVisual.getNombreTipo(r.tipoDte || r.dte?.identificacion?.tipoDte) : 'DTE';
+  const numCtrl = r.numeroControl || r.codigoGeneracion || 'DOC';
+  const fileName = `${tipoNom.replace(/\s+/g, '_')}_${numCtrl}_${DTEVisual ? DTEVisual.sanitizarNombre(clientName) : 'CLIENTE'}`;
+
   document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
-      <div class="modal">
-        <h3>${ok ? 'DTE generado' : 'DTE con errores'}</h3>
+      <div class="modal" style="max-width:680px">
+        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin-bottom:0">${ok ? '✅ DTE Generado y Procesado' : '⚠️ DTE con Observaciones o Errores'}</h3>
+          <span class="badge-estado ${esc(r.estado)}">${esc(r.estado)}</span>
+        </div>
         ${r.estado === 'SIMULADO' ? '<div class="alert alert-warning mb">Credenciales MH no configuradas: documento generado en modo SIMULADO (no transmitido). Configure su certificado y credenciales en <a href="#/configuracion" style="color:var(--azul)">Configuración</a>.</div>' : ''}
         ${r.estado === 'RECHAZADO' || r.estado === 'ERROR' ? `<div class="alert alert-error mb">${esc(JSON.stringify(r.respuesta))}</div>` : ''}
         <div class="resumen-box mb">
-          <div class="resumen-row"><span>Estado</span><span class="badge-estado ${esc(r.estado)}">${esc(r.estado)}</span></div>
+          <div class="resumen-row"><span>Tipo de Documento</span><span><b>${esc(tipoNom)}</b></span></div>
+          <div class="resumen-row"><span>Cliente / Receptor</span><span><b>${esc(clientName)}</b></span></div>
           <div class="resumen-row"><span>Número de control</span><span><b>${esc(r.numeroControl)}</b></span></div>
           <div class="resumen-row"><span>Código de generación</span><span style="font-size:12px"><b>${esc(r.codigoGeneracion)}</b></span></div>
           <div class="resumen-row"><span>Sello de recepción</span><span style="font-size:12px">${esc(r.selloRecibido || '—')}</span></div>
-          <div class="resumen-row total"><span>Total</span><span>${fmtMoneda(r.total)}</span></div>
+          <div class="resumen-row total"><span>Total a Pagar</span><span>${fmtMoneda(r.total)}</span></div>
         </div>
-        <div class="modal-actions">
-          <button class="btn btn-secundario" onclick="descargarJSON()">Descargar JSON</button>
-          <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
-          <button class="btn btn-verde" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">Emitir otra</button>
+        <div class="modal-actions" style="justify-content:space-between">
+          <div class="flex" style="gap:8px">
+            <button class="btn btn-verde" onclick="verComprobanteUltimo()">📄 Ver Comprobante / Imprimir</button>
+            <button class="btn btn-secundario" onclick="descargarPDFResultado('${fileName}')">⬇️ Descargar PDF</button>
+            <button class="btn btn-ghost" onclick="descargarJSONResultado('${fileName}')">{ } JSON</button>
+          </div>
+          <div class="flex" style="gap:8px">
+            <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+            <button class="btn btn-verde" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">+ Emitir otro</button>
+          </div>
         </div>
       </div>
     </div>`);
 }
 
-window.descargarJSON = () => {
+window.verComprobanteUltimo = () => {
   const r = state.ultimoResultado;
-  if (!r) return;
+  if (!r || !r.dte) return toast('No hay DTE disponible', 'error');
+  if (typeof DTEVisual !== 'undefined') {
+    DTEVisual.previsualizar(r.dte, { sello: r.selloRecibido });
+  }
+};
+
+window.descargarPDFResultado = (fileName) => {
+  const r = state.ultimoResultado;
+  if (!r || !r.dte) return toast('No hay DTE disponible', 'error');
+  if (typeof DTEVisual !== 'undefined') {
+    DTEVisual.previsualizar(r.dte, { sello: r.selloRecibido });
+  }
+};
+
+window.descargarJSONResultado = (fileName) => {
+  const r = state.ultimoResultado;
+  if (!r || !r.dte) return;
   const blob = new Blob([JSON.stringify(r.dte, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `DTE-${r.tipoDte || ''}-${r.numeroControl || r.codigoGeneracion}.json`;
+  a.download = `${fileName || 'DTE'}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
+};
+
+window.descargarJSON = () => {
+  const r = state.ultimoResultado;
+  if (!r) return;
+  const clientName = r.dte?.receptor?.nombre || 'CLIENTE';
+  const tipoNom = DTEVisual ? DTEVisual.getNombreTipo(r.tipoDte || r.dte?.identificacion?.tipoDte) : 'DTE';
+  const fileName = `${tipoNom.replace(/\s+/g, '_')}_${r.numeroControl || r.codigoGeneracion}_${DTEVisual ? DTEVisual.sanitizarNombre(clientName) : 'CLIENTE'}`;
+  window.descargarJSONResultado(fileName);
 };
 
 // ---------- VISTA: Clientes ----------
@@ -763,9 +887,10 @@ function renderDTEs(app, filtroTipo) {
             <td>${esc(d.fec_emi)}</td>
             <td><b>${fmtMoneda(d.total)}</b></td>
             <td><span class="badge-estado ${esc(d.estado)}">${esc(d.estado)}</span></td>
-            <td class="flex" style="justify-content:flex-end">
-              <button class="btn btn-secundario" onclick="verDTE(${d.id})">Ver</button>
-              ${d.estado === 'PROCESADO' ? '<button class="btn btn-rojo" onclick="modalAnular(' + d.id + ')">Anular</button>' : ''}
+            <td class="flex" style="justify-content:flex-end;gap:6px">
+              <button class="btn btn-verde" style="padding:6px 12px;font-size:12px" onclick="verComprobanteDTE(${d.id})">📄 Comprobante / PDF</button>
+              <button class="btn btn-secundario" style="padding:6px 10px;font-size:12px" onclick="verDTE(${d.id})">Detalles / JSON</button>
+              ${d.estado === 'PROCESADO' ? '<button class="btn btn-rojo" style="padding:6px 10px;font-size:12px" onclick="modalAnular(' + d.id + ')">Anular</button>' : ''}
             </td>
           </tr>`).join('')
         : '<tr><td colspan="8" class="center text-gris">Sin documentos</td></tr>';
@@ -780,15 +905,37 @@ function nombreTipo(cod) {
   return t ? t.nombre : cod;
 }
 
+window.verComprobanteDTE = async (id) => {
+  try {
+    const { dte } = await API.dte(id);
+    const dteObj = JSON.parse(dte.dte_json);
+    dteObj.estado = dte.estado;
+    if (typeof DTEVisual !== 'undefined') {
+      DTEVisual.previsualizar(dteObj, { sello: dte.sello_recibido });
+    }
+  } catch (e) {
+    toast(e.error || 'Error al cargar el comprobante', 'error');
+  }
+};
+
 window.verDTE = async (id) => {
   try {
     const { dte } = await API.dte(id);
+    const dteObj = JSON.parse(dte.dte_json);
+    const clientName = dte.receptor_nombre || dteObj.receptor?.nombre || 'CLIENTE';
+    const tipoNom = DTEVisual ? DTEVisual.getNombreTipo(dte.tipo_dte) : 'DTE';
+    const fileName = `${tipoNom.replace(/\s+/g, '_')}_${dte.numero_control}_${DTEVisual ? DTEVisual.sanitizarNombre(clientName) : 'CLIENTE'}`;
+
     document.body.insertAdjacentHTML('beforeend', `
       <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
-        <div class="modal">
-          <h3>DTE ${esc(dte.numero_control)} <span class="badge-estado ${esc(dte.estado)}">${esc(dte.estado)}</span></h3>
+        <div class="modal" style="max-width:850px">
+          <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h3 style="margin-bottom:0">DTE ${esc(dte.numero_control)}</h3>
+            <span class="badge-estado ${esc(dte.estado)}">${esc(dte.estado)}</span>
+          </div>
           <div class="resumen-box mb">
-            <div class="resumen-row"><span>Receptor</span><span>${esc(dte.receptor_nombre)}</span></div>
+            <div class="resumen-row"><span>Tipo de Documento</span><span><b>${esc(tipoNom)}</b></span></div>
+            <div class="resumen-row"><span>Receptor</span><span><b>${esc(dte.receptor_nombre)}</b></span></div>
             <div class="resumen-row"><span>Código generación</span><span style="font-size:12px">${esc(dte.codigo_generacion)}</span></div>
             <div class="resumen-row"><span>Sello recibido</span><span style="font-size:12px">${esc(dte.sello_recibido || '—')}</span></div>
             <div class="resumen-row"><span>Fecha emisión</span><span>${esc(dte.fec_emi)} ${esc(dte.hor_emi)}</span></div>
@@ -796,9 +943,12 @@ window.verDTE = async (id) => {
           </div>
           ${dte.estado === 'RECHAZADO' ? `<div class="alert alert-error mb">${esc(dte.observaciones || 'Rechazado por el MH')}</div>` : ''}
           <h3 style="margin-bottom:8px">JSON del documento</h3>
-          <pre class="json-view">${esc(JSON.stringify(JSON.parse(dte.dte_json), null, 2))}</pre>
-          <div class="modal-actions">
-            <button class="btn btn-secundario" onclick="descargarDTEJSON(${dte.id})">Descargar JSON</button>
+          <pre class="json-view">${esc(JSON.stringify(dteObj, null, 2))}</pre>
+          <div class="modal-actions" style="justify-content:space-between">
+            <div class="flex" style="gap:8px">
+              <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver Comprobante / Imprimir</button>
+              <button class="btn btn-secundario" onclick="descargarDTEJSON(${dte.id})">⬇️ Descargar JSON</button>
+            </div>
             <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
           </div>
         </div>
@@ -808,10 +958,14 @@ window.verDTE = async (id) => {
 
 window.descargarDTEJSON = async (id) => {
   const { dte } = await API.dte(id);
-  const blob = new Blob([dte.dte_json], { type: 'application/json' });
+  const dteObj = JSON.parse(dte.dte_json);
+  const clientName = dte.receptor_nombre || dteObj.receptor?.nombre || 'CLIENTE';
+  const tipoNom = DTEVisual ? DTEVisual.getNombreTipo(dte.tipo_dte) : 'DTE';
+  const fileName = `${tipoNom.replace(/\s+/g, '_')}_${dte.numero_control}_${DTEVisual ? DTEVisual.sanitizarNombre(clientName) : 'CLIENTE'}`;
+  const blob = new Blob([JSON.stringify(dteObj, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${dte.numero_control}.json`;
+  a.download = `${fileName}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 };
@@ -1447,9 +1601,14 @@ function renderConfiguracion(app) {
 }
 
 function pintarConfig(r) {
-  const { emisor, mh, correlativos, ambiente_activo } = r;
+  const { emisor, mh, correlativos, ambiente_activo, apariencia } = r;
   const emisorOk = emisor?.nit && emisor?.nombre;
   const firmaOk = mh.firma_activa;
+  let currentLogo = apariencia?.logo_b64 || localStorage.getItem('fac2026_logo_empresa') || '';
+  let currentColor = apariencia?.color_primario || localStorage.getItem('fac2026_color_primario') || '#1b365d';
+
+  if (currentLogo) localStorage.setItem('fac2026_logo_empresa', currentLogo);
+  if (currentColor) localStorage.setItem('fac2026_color_primario', currentColor);
 
   $('#cfg-body').innerHTML = `
     <div class="card card-banner flex" style="justify-content:space-between;align-items:center;margin-bottom:18px;padding:16px 22px;border-radius:16px;flex-wrap:wrap;gap:12px">
@@ -1468,6 +1627,54 @@ function pintarConfig(r) {
       <div class="config-item"><div class="cfg-label">Firma electrónica</div><div class="cfg-value ${firmaOk ? 'cfg-ok' : 'cfg-warn'}">${firmaOk ? 'Cargada' : 'No cargada'}</div></div>
       <div class="config-item"><div class="cfg-label">Ambiente MH activo</div><div class="cfg-value">${ambiente_activo === '01' ? 'Producción' : 'Pruebas'}</div></div>
       <div class="config-item"><div class="cfg-label">Certificado vence</div><div class="cfg-value">${esc(mh.cert_vence || '—')}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin-bottom:2px">🎨 Apariencia Gráfica y Personalización de Comprobantes DTE</h3>
+          <div class="text-gris" style="font-size:12.5px">Configura el logo de tu empresa y el color corporativo que aparecerá en el PDF y en la versión impresa de tus Facturas, Créditos Fiscales y Notas de Crédito.</div>
+        </div>
+        <button class="btn btn-secundario" id="btn-previsualizar-ejemplo" style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px">👁️ Ver Ejemplo en Vivo</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:18px;margin-top:14px">
+        <!-- Subir Logo -->
+        <div style="background:var(--resumen-bg);border:1px solid var(--borde);border-radius:14px;padding:16px">
+          <label style="font-weight:700;font-size:13px;display:block;margin-bottom:8px">Logo de la Empresa (PNG, JPG, SVG)</label>
+          <div id="logo-preview-box" style="height:90px;background:#ffffff;border:1.5px dashed var(--borde);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden;padding:10px">
+            ${currentLogo ? `<img src="${currentLogo}" id="img-logo-preview" style="max-height:70px;max-width:100%;object-fit:contain">` : `<span id="txt-no-logo" class="text-gris" style="font-size:12px">Sin logo configurado (se mostrará el nombre comercial)</span>`}
+          </div>
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
+            <label class="btn btn-secundario" style="cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:6px">
+              📁 Seleccionar imagen
+              <input type="file" id="input-subir-logo" accept="image/*" style="display:none">
+            </label>
+            <button class="btn btn-rojo" id="btn-quitar-logo" style="font-size:12px;padding:6px 12px;display:${currentLogo ? 'inline-block' : 'none'}">Quitar logo</button>
+          </div>
+        </div>
+
+        <!-- Color Primario / Acento -->
+        <div style="background:var(--resumen-bg);border:1px solid var(--borde);border-radius:14px;padding:16px">
+          <label style="font-weight:700;font-size:13px;display:block;margin-bottom:8px">Color Primario / Corporativo del Comprobante</label>
+          <div class="flex" style="align-items:center;gap:12px;margin-bottom:14px">
+            <input type="color" id="cfg-color-picker" value="${currentColor}" style="width:46px;height:38px;border:none;border-radius:8px;cursor:pointer;background:none">
+            <input type="text" id="cfg-color-hex" value="${currentColor}" style="width:110px;font-family:monospace;font-weight:700;padding:6px 10px" placeholder="#1b365d">
+          </div>
+          <div class="text-gris" style="font-size:11.5px;margin-bottom:8px">Paleta rápida recomendada:</div>
+          <div class="flex" style="gap:10px" id="palette-presets">
+            <button type="button" class="btn-color-dot" data-color="#1b365d" style="background:#1b365d;width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25)" title="Azul Hacienda Oficial"></button>
+            <button type="button" class="btn-color-dot" data-color="#0d47c9" style="background:#0d47c9;width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25)" title="Azul Real"></button>
+            <button type="button" class="btn-color-dot" data-color="#0f2b5c" style="background:#0f2b5c;width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25)" title="Azul Marino"></button>
+            <button type="button" class="btn-color-dot" data-color="#0f766e" style="background:#0f766e;width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25)" title="Verde Esmeralda"></button>
+            <button type="button" class="btn-color-dot" data-color="#18181b" style="background:#18181b;width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25)" title="Grafito Oscuro"></button>
+            <button type="button" class="btn-color-dot" data-color="#701a75" style="background:#701a75;width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.25)" title="Vino Tinto"></button>
+          </div>
+        </div>
+      </div>
+      <div class="mt flex" style="gap:10px">
+        <button class="btn btn-verde" id="btn-guardar-apariencia">Guardar apariencia del comprobante</button>
+      </div>
     </div>
 
     <div class="card">
@@ -1522,7 +1729,7 @@ function pintarConfig(r) {
     <div class="card card-banner flex" style="justify-content:space-between;align-items:center;margin-top:20px;padding:20px 24px;border-radius:18px;flex-wrap:wrap;gap:14px">
       <div>
         <strong style="font-size:16px;display:block">¿Terminaste de configurar?</strong>
-        <span class="text-gris" style="font-size:13px">Guarda emisor, credenciales MH de este ambiente y correlativos simultáneamente.</span>
+        <span class="text-gris" style="font-size:13px">Guarda apariencia, emisor, credenciales MH de este ambiente y correlativos simultáneamente.</span>
       </div>
       <div class="flex" style="gap:12px;flex-wrap:wrap">
         <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
@@ -1530,6 +1737,156 @@ function pintarConfig(r) {
       </div>
     </div>
   `;
+
+  // Apariencia Handlers
+  const inputLogo = $('#input-subir-logo');
+  const btnQuitarLogo = $('#btn-quitar-logo');
+  const logoBox = $('#logo-preview-box');
+  const colorPicker = $('#cfg-color-picker');
+  const colorHex = $('#cfg-color-hex');
+
+  if (inputLogo) {
+    inputLogo.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) return toast('El logo debe ser menor a 2MB', 'error');
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        currentLogo = ev.target.result;
+        localStorage.setItem('fac2026_logo_empresa', currentLogo);
+        logoBox.innerHTML = `<img src="${currentLogo}" id="img-logo-preview" style="max-height:70px;max-width:100%;object-fit:contain">`;
+        btnQuitarLogo.style.display = 'inline-block';
+        toast('Logo cargado correctamente', 'success');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (btnQuitarLogo) {
+    btnQuitarLogo.addEventListener('click', () => {
+      currentLogo = '';
+      localStorage.removeItem('fac2026_logo_empresa');
+      logoBox.innerHTML = `<span id="txt-no-logo" class="text-gris" style="font-size:12px">Sin logo configurado (se mostrará el nombre comercial)</span>`;
+      btnQuitarLogo.style.display = 'none';
+      if (inputLogo) inputLogo.value = '';
+      toast('Logo removido', 'info');
+    });
+  }
+
+  if (colorPicker && colorHex) {
+    colorPicker.addEventListener('input', (e) => {
+      currentColor = e.target.value;
+      colorHex.value = currentColor;
+      localStorage.setItem('fac2026_color_primario', currentColor);
+    });
+    colorHex.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        currentColor = val;
+        colorPicker.value = currentColor;
+        localStorage.setItem('fac2026_color_primario', currentColor);
+      }
+    });
+  }
+
+  document.querySelectorAll('.btn-color-dot').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentColor = btn.dataset.color;
+      colorPicker.value = currentColor;
+      colorHex.value = currentColor;
+      localStorage.setItem('fac2026_color_primario', currentColor);
+      toast(`Color actualizado a ${currentColor}`, 'info');
+    });
+  });
+
+  $('#btn-guardar-apariencia')?.addEventListener('click', async () => {
+    try {
+      await API.guardarConfig({
+        apariencia: {
+          logo_b64: currentLogo,
+          color_primario: currentColor,
+        }
+      });
+      localStorage.setItem('fac2026_logo_empresa', currentLogo);
+      localStorage.setItem('fac2026_color_primario', currentColor);
+      toast('Apariencia del comprobante guardada', 'success');
+    } catch (e) {
+      toast(e.error || 'Error al guardar la apariencia', 'error');
+    }
+  });
+
+  $('#btn-previsualizar-ejemplo')?.addEventListener('click', () => {
+    const dteEjemplo = {
+      identificacion: {
+        version: 3,
+        ambiente: '00',
+        tipoDte: '03',
+        numeroControl: 'DTE-03-M001P001-000000000000001',
+        codigoGeneracion: '7EF3EE72-700E-4C61-9893-D9B8BE035157',
+        fecEmi: new Date().toISOString().slice(0, 10),
+        horEmi: '10:14:46',
+      },
+      emisor: {
+        nombre: $('#e-nombre')?.value?.trim() || emisor?.nombre || 'EVER ODIR RAMOS PORTILLO',
+        nit: $('#e-nit')?.value?.trim() || emisor?.nit || '12012608691018',
+        nrc: $('#e-nrc')?.value?.trim() || emisor?.nrc || '899798',
+        descActividad: $('#e-codact')?.value ? nombreActividad($('#e-codact').value) : (emisor?.desc_actividad || 'Publicidad y Servicios Comerciales'),
+        direccion: { complemento: $('#e-comp')?.value?.trim() || emisor?.complemento || '7 Avenida Norte, Colonia Layco, 1447, San Salvador' },
+        telefono: $('#e-tel')?.value?.trim() || emisor?.telefono || '72108369',
+        correo: $('#e-correo')?.value?.trim() || emisor?.correo || 'spacioprintrotulos@gmail.com',
+        nombreComercial: $('#e-ncomercial')?.value?.trim() || emisor?.nombre_comercial || 'Spacio Rotulos',
+      },
+      receptor: {
+        nombre: 'TRANS - AUTO S.A. DE C.V.',
+        nit: '06140204921049',
+        nrc: '462055',
+        descActividad: 'Agencias de tramitaciones aduanales',
+        nombreComercial: 'TRANS - AUTO S.A. DE C.V.',
+        direccion: { complemento: 'Km.20 Autopista San Salvador - Nejapa Angelito Sur, Nejapa' },
+        telefono: '25345777',
+        correo: 'facturas.transauto@gmail.com',
+      },
+      cuerpoDocumento: [
+        {
+          numItem: 1,
+          tipoItem: 2,
+          codigo: 'SRV01',
+          descripcion: 'Rotulación de microbús 4 caras full color en vinil automotriz de alta durabilidad',
+          cantidad: 1,
+          uniMedida: 59,
+          precioUni: 240.00,
+          montoDescu: 0,
+          ventaGravada: 240.00,
+          ventaExenta: 0,
+          ventaNoSuj: 0,
+        }
+      ],
+      resumen: {
+        totalNoSuj: 0,
+        totalExenta: 0,
+        totalGravada: 240.00,
+        subTotalVentas: 240.00,
+        subTotal: 240.00,
+        tributos: [{ codigo: '20', valor: 31.20 }],
+        ivaRete1: 2.40,
+        ivaPerci1: 0,
+        reteRenta: 0,
+        montoTotalOperacion: 271.20,
+        totalPagar: 268.80,
+        totalLetras: 'DOSCIENTOS SESENTA Y OCHO 80/100 DÓLARES',
+        condicionOperacion: 1,
+        observaciones: 'Servicio instalado y entregado a entera satisfacción del cliente',
+      }
+    };
+
+    if (typeof DTEVisual !== 'undefined') {
+      DTEVisual.previsualizar(dteEjemplo, {
+        sello: '20266F5C2D02BC0E4B20B541DFC2A7E05D94JAXE',
+        logo: currentLogo,
+        colorPrimario: currentColor
+      });
+    }
+  });
 
   // Cascada departamento→municipio emisor
   const eDepto = $('#e-depto').querySelector('.depto-select');
@@ -1590,10 +1947,14 @@ function pintarConfig(r) {
     catch (e) { toast(e.error, 'error'); }
   });
 
-  // Guardado General (Emisor + MH + Correlativos en una sola operación)
+  // Guardado General (Apariencia + Emisor + MH + Correlativos en una sola operación)
   const guardarTodoConfig = async () => {
     const ambiente = $('#mh-ambiente').value;
     const body = {
+      apariencia: {
+        logo_b64: currentLogo,
+        color_primario: currentColor,
+      },
       emisor: {
         ambiente,
         nit: $('#e-nit').value.trim(), nrc: $('#e-nrc').value.trim(),
@@ -1620,6 +1981,8 @@ function pintarConfig(r) {
 
     try {
       await API.guardarConfig(body);
+      localStorage.setItem('fac2026_logo_empresa', currentLogo);
+      localStorage.setItem('fac2026_color_primario', currentColor);
       toast('Toda la configuración ha sido guardada con éxito', 'success');
       renderConfiguracion($('#app'));
     } catch (e) {

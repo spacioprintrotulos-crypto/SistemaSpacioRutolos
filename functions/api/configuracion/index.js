@@ -10,10 +10,16 @@ export async function onRequestGet({ request, env }) {
   const emisor = (await getEmisor(env.DB, ambiente)) || {};
   const mh = (await getMHConfig(env.DB, ambiente)) || { ambiente };
   const correlativos = await env.DB.prepare('SELECT tipo_dte, ultimo FROM correlativos').all();
+  const logoRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'empresa_logo_b64'").first();
+  const colorRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'dte_color_primario'").first();
   return json({
     ok: true,
     emisor,
     ambiente_activo: ambienteActivo,
+    apariencia: {
+      logo_b64: logoRow?.valor || null,
+      color_primario: colorRow?.valor || '#1b365d',
+    },
     mh: {
       ambiente,
       api_user: mh.api_user || '',
@@ -81,6 +87,22 @@ export async function onRequestPut({ request, env }) {
       for (const [tipo, valor] of Object.entries(body.correlativos)) {
         await env.DB.prepare('INSERT OR IGNORE INTO correlativos (tipo_dte, ultimo) VALUES (?, 0)').bind(tipo).run();
         await env.DB.prepare('UPDATE correlativos SET ultimo = ? WHERE tipo_dte = ?').bind(Number(valor) || 0, tipo).run();
+      }
+    }
+
+    if (body.apariencia && typeof body.apariencia === 'object') {
+      const ap = body.apariencia;
+      if (ap.logo_b64 !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('empresa_logo_b64', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(ap.logo_b64 || '').run();
+      }
+      if (ap.color_primario !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('dte_color_primario', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(ap.color_primario || '#1b365d').run();
       }
     }
 

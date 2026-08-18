@@ -457,16 +457,75 @@ input, select, textarea { font-family: inherit; }
 .resumen-row.total { font-weight: 800; color: var(--texto); font-size: 18px; border-bottom: none; padding-top: 12px; }
 .resumen-row.total span:last-child { color: var(--azul); }
 
-/* ---------- Tablas de listados ---------- */
-.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.data-table th {
-  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--gris); padding: 10px 8px; border-bottom: 2px solid var(--borde);
+/* ---------- Tablas de listados y Responsividad ---------- */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  margin-bottom: 8px;
 }
-.data-table td { padding: 10px 8px; border-bottom: 1px solid var(--borde); color: var(--texto); }
-.data-table tr:hover td { background: var(--table-hover); }
 
-.badge-estado { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 600px;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--gris);
+  padding: 10px 10px;
+  border-bottom: 2px solid var(--borde);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--borde);
+  color: var(--texto);
+  vertical-align: middle;
+}
+
+.data-table tr:hover td {
+  background: var(--table-hover);
+}
+
+.cell-actions {
+  white-space: nowrap !important;
+  text-align: right !important;
+}
+
+.btn-group-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  flex-wrap: nowrap !important;
+}
+
+.btn-xs {
+  padding: 6px 10px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.btn-xs:hover {
+  transform: translateY(-1px) !important;
+}
+
+.badge-estado { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .badge-estado.PROCESADO { background: #f0fdf4; color: #15803d; }
 .badge-estado.SIMULADO { background: #fffbeb; color: #92400e; }
 .badge-estado.RECHAZADO { background: #fef2f2; color: #991b1b; }
@@ -1034,10 +1093,230 @@ pre.json-view {
   }
 }
 
-@media (max-width: 760px) {
-  .login-left { display: none; }
-  .app-top { padding: 14px 16px; }
-  .dte-document { width: 100% !important; }
+/* ---------- Responsividad para Tablets y Móviles ---------- */
+
+/* Tablets & iPads (<= 1024px) */
+@media (max-width: 1024px) {
+  .app-body {
+    width: 95vw;
+    margin: 18px auto 35px;
+  }
+  .menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    padding: 18px;
+  }
 }
+
+/* Tablets Pequeñas y Móviles (<= 768px) */
+@media (max-width: 768px) {
+  .login-page {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .login-left {
+    display: none;
+  }
+  .login-right {
+    flex: 1;
+    padding: 24px 16px;
+    width: 100%;
+    min-height: 100vh;
+  }
+  .login-card-wrapper {
+    width: 100%;
+    max-width: 380px;
+  }
+  .login-card {
+    padding: 24px 20px;
+    border-radius: 18px;
+  }
+  
+  .app-top {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .app-brand strong {
+    font-size: 15px;
+  }
+  .app-logo-badge {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .app-userbox {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 8px;
+  }
+  .app-userbox a {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  
+  .app-body {
+    width: 96vw;
+    margin: 12px auto 25px;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .page-head h2 {
+    font-size: 19px;
+  }
+  .page-head .actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-head .actions select,
+  .page-head .actions input {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 120px;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  .btn-volver {
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .menu-card {
+    padding: 16px 10px;
+    border-radius: 14px;
+    gap: 6px;
+  }
+  .menu-card .icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .menu-card .icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .menu-card .card-title {
+    font-size: 13.5px;
+  }
+  .menu-card .card-sub {
+    font-size: 11px;
+    display: none;
+  }
+
+  .card {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+  .card + .card {
+    margin-top: 12px;
+  }
+  .card h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .form-field {
+    margin-bottom: 12px;
+  }
+  .form-field input, .form-field select, .form-field textarea {
+    padding: 10px 12px;
+    font-size: 13.5px;
+  }
+
+  .modal-backdrop {
+    padding: 10px;
+  }
+  .modal {
+    padding: 18px 14px;
+    border-radius: 16px;
+    max-width: 98vw;
+    width: 100%;
+  }
+
+  .dte-viewer-modal {
+    width: 98vw !important;
+    max-width: 98vw !important;
+    padding: 10px !important;
+  }
+  .dte-viewer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+  .dte-viewer-title {
+    font-size: 14px;
+  }
+  .dte-viewer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+  .dte-viewer-actions .btn {
+    flex: 1 1 calc(50% - 6px);
+    padding: 8px 6px;
+    font-size: 11.5px;
+    text-align: center;
+    justify-content: center;
+  }
+  .dte-viewer-content {
+    padding: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+  }
+  .dte-document {
+    min-width: 740px !important; /* Preserva la hoja carta sin aplastarla para visualización */
+    transform-origin: top left;
+  }
+}
+
+/* Teléfonos Pequeños (<= 480px) */
+@media (max-width: 480px) {
+  .app-brand strong {
+    font-size: 13.5px;
+  }
+  .app-userbox span {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .page-head .actions select,
+  .page-head .actions input {
+    flex: 1 1 100%;
+  }
+  .btn-xs {
+    padding: 5px 7px !important;
+    font-size: 11px !important;
+  }
+  .tabs-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+
 
 

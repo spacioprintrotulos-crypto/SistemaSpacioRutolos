@@ -296,18 +296,20 @@ function renderFormulario(app) {
           <div class="form-field"><label>Unidad de plazo (CAT-018)</label><select id="plazo-unidad"><option value="01">Días</option><option value="02">Meses</option><option value="03">Años</option></select></div>
         </div>
       </div>
-      <table class="items-table">
-        <thead><tr>
-          <th style="width:34%">Descripción</th>
-          <th>Venta</th>
-          <th style="width:70px">Cant.</th>
-          <th style="width:110px">Precio ${tipo === '01' ? '(c/IVA)' : '(s/IVA)'}</th>
-          <th style="width:110px">Desc. $</th>
-          <th style="width:120px">Subtotal</th>
-          <th></th>
-        </tr></thead>
-        <tbody id="items-body"></tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="items-table">
+          <thead><tr>
+            <th style="min-width:200px;width:34%">Descripción</th>
+            <th style="min-width:100px">Venta</th>
+            <th style="min-width:70px;width:70px">Cant.</th>
+            <th style="min-width:110px;width:110px">Precio ${tipo === '01' ? '(c/IVA)' : '(s/IVA)'}</th>
+            <th style="min-width:100px;width:110px">Desc. $</th>
+            <th style="min-width:110px;width:120px">Subtotal</th>
+            <th style="width:40px"></th>
+          </tr></thead>
+          <tbody id="items-body"></tbody>
+        </table>
+      </div>
       <button class="btn btn-secundario btn-add-item" onclick="agregarItem()">+ Agregar línea</button>
     </div>
 
@@ -757,10 +759,12 @@ function renderClientes(app) {
       </div>
     </div>
     <div class="card">
-      <table class="data-table">
-        <thead><tr><th>Nombre</th><th>NIT / DUI</th><th>NRC</th><th>Departamento</th><th>Teléfono</th><th></th></tr></thead>
-        <tbody id="clientes-body"><tr><td colspan="6" class="center text-gris">Cargando...</td></tr></tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead><tr><th>Nombre</th><th>NIT / DUI</th><th>NRC</th><th>Departamento</th><th>Teléfono</th><th style="text-align:right;min-width:140px">Acciones</th></tr></thead>
+          <tbody id="clientes-body"><tr><td colspan="6" class="center text-gris">Cargando...</td></tr></tbody>
+        </table>
+      </div>
     </div>`);
 
   const cargar = (q) => {
@@ -774,9 +778,11 @@ function renderClientes(app) {
             <td>${esc(c.nrc || '—')}</td>
             <td>${esc(nombreDepto(c.departamento))}</td>
             <td>${esc(c.telefono || '—')}</td>
-            <td class="flex" style="justify-content:flex-end">
-              <button class="btn btn-secundario" onclick="modalCliente(${c.id})">Editar</button>
-              <button class="btn btn-rojo" onclick="borrarCliente(${c.id})">Eliminar</button>
+            <td class="cell-actions" style="text-align:right">
+              <div class="btn-group-actions">
+                <button class="btn btn-secundario btn-xs" onclick="modalCliente(${c.id})">✏️ Editar</button>
+                <button class="btn btn-rojo btn-xs" onclick="borrarCliente(${c.id})">🗑️</button>
+              </div>
             </td>
           </tr>`).join('')
         : '<tr><td colspan="6" class="center text-gris">Sin clientes registrados</td></tr>';
@@ -873,10 +879,12 @@ function renderDTEs(app, filtroTipo) {
       </div>
     </div>
     <div class="card">
-      <table class="data-table">
-        <thead><tr><th>#</th><th>Número de control</th><th>Tipo</th><th>Receptor</th><th>Fecha</th><th>Total</th><th>Estado</th><th></th></tr></thead>
-        <tbody id="dtes-body"><tr><td colspan="8" class="center text-gris">Cargando...</td></tr></tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Número de control</th><th>Tipo</th><th>Receptor</th><th>Fecha</th><th>Total</th><th>Estado</th><th style="text-align:right;min-width:215px">Acciones</th></tr></thead>
+          <tbody id="dtes-body"><tr><td colspan="8" class="center text-gris">Cargando...</td></tr></tbody>
+        </table>
+      </div>
     </div>`);
 
   window.cargarDTEs = () => {
@@ -891,10 +899,12 @@ function renderDTEs(app, filtroTipo) {
             <td>${esc(d.fec_emi)}</td>
             <td><b>${fmtMoneda(d.total)}</b></td>
             <td><span class="badge-estado ${esc(d.estado)}">${esc(d.estado)}</span></td>
-            <td class="flex" style="justify-content:flex-end;gap:6px">
-              <button class="btn btn-verde" style="padding:6px 12px;font-size:12px" onclick="verComprobanteDTE(${d.id})">📄 Comprobante / PDF</button>
-              <button class="btn btn-secundario" style="padding:6px 10px;font-size:12px" onclick="verDTE(${d.id})">Detalles / JSON</button>
-              ${d.estado === 'PROCESADO' ? '<button class="btn btn-rojo" style="padding:6px 10px;font-size:12px" onclick="modalAnular(' + d.id + ')">Anular</button>' : ''}
+            <td class="cell-actions" style="text-align:right">
+              <div class="btn-group-actions">
+                <button class="btn btn-verde btn-xs" onclick="verComprobanteDTE(${d.id})" title="Ver comprobante e imprimir">📄 Ver PDF</button>
+                <button class="btn btn-secundario btn-xs" onclick="verDTE(${d.id})" title="Detalles y JSON">👁️ JSON</button>
+                ${d.estado === 'PROCESADO' ? '<button class="btn btn-rojo btn-xs" onclick="modalAnular(' + d.id + ')" title="Anular DTE">✕ Anular</button>' : ''}
+              </div>
             </td>
           </tr>`).join('')
         : '<tr><td colspan="8" class="center text-gris">Sin documentos</td></tr>';
@@ -1426,21 +1436,23 @@ function pintarHistorialCotizaciones() {
         <input id="buscar-cot" placeholder="Buscar por cliente, N° correlativo, teléfono o producto..." style="min-width:320px;padding:10px 14px;border:1.5px solid var(--input-border);border-radius:12px;background:var(--input-bg);color:var(--texto)">
         <button class="btn btn-verde" onclick="switchCotTab('nueva')">+ Nueva cotización</button>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>N° Corr.</th>
-            <th>Fecha</th>
-            <th>Cliente</th>
-            <th>Teléfono</th>
-            <th>Subtotal</th>
-            <th>IVA (13%)</th>
-            <th>Total</th>
-            <th style="text-align:right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="cot-historial-body"></tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>N° Corr.</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Teléfono</th>
+              <th>Subtotal</th>
+              <th>IVA (13%)</th>
+              <th>Total</th>
+              <th style="text-align:right;min-width:160px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cot-historial-body"></tbody>
+        </table>
+      </div>
     </div>
   `;
 
@@ -1470,9 +1482,11 @@ function pintarHistorialCotizaciones() {
         <td>${fmtMoneda(c.subtotal)}</td>
         <td>${fmtMoneda(c.iva)}</td>
         <td><b style="color:var(--azul)">${fmtMoneda(c.total)}</b></td>
-        <td class="flex" style="justify-content:flex-end;gap:8px">
-          <button class="btn btn-secundario" onclick="abrirCotizacionId(${c.id})">👁️ Ver / Imprimir</button>
-          <button class="btn btn-rojo" onclick="eliminarCotizacionId(${c.id})">🗑️</button>
+        <td class="cell-actions" style="text-align:right">
+          <div class="btn-group-actions">
+            <button class="btn btn-secundario btn-xs" onclick="abrirCotizacionId(${c.id})">👁️ Ver</button>
+            <button class="btn btn-rojo btn-xs" onclick="eliminarCotizacionId(${c.id})" title="Eliminar cotización">🗑️</button>
+          </div>
         </td>
       </tr>
     `).join('');

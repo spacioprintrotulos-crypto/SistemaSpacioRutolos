@@ -16,8 +16,8 @@ export async function onRequestPost({ request, env }) {
     if (!user || !pwd) return json({ ok: false, error: 'Ingrese usuario y contraseña MH' }, 400);
 
     await mhAutenticar(ambiente, user, pwd);
-    return json({ ok: true, mensaje: `Conexión con MH ${ambiente === '01' ? 'Producción' : 'Pruebas'} confirmada` });
+    return json({ ok: true, mensaje: `Conexión con MH ${ambiente === '01' ? 'Producción' : 'Pruebas'} confirmada exitosamente` });
   } catch (e) {
-    return json({ ok: false, error: 'MH rechazó las credenciales API. Use las credenciales de aplicación entregadas por MH, no las del portal web.' }, 400);
+    return json({ ok: false, error: e.message || 'MH rechazó las credenciales API.' }, 400);
   }
 }

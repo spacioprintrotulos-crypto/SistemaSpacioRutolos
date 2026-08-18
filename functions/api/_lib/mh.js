@@ -23,7 +23,8 @@ export async function mhAutenticar(ambiente, user, pwd) {
   });
   const data = await resp.json().catch(() => null);
   if (!resp.ok || !data || data.status !== 'OK') {
-    throw new Error(`Autenticación MH fallida (HTTP ${resp.status}): ${JSON.stringify(data)}`);
+    const msg = data?.body?.descripcionMsg ? `${data.body.descripcionMsg} (${data.body.codigoMsg || resp.status})` : (data ? JSON.stringify(data) : `HTTP ${resp.status}`);
+    throw new Error(`Autenticación MH fallida: ${msg}`);
   }
   // El MH a veces devuelve el token con prefijo 'Bearer' ya incluido.
   const token = String(data.body.token || '').replace(/^Bearer\s+/i, '');

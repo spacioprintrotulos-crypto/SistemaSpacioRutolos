@@ -30,9 +30,9 @@ function parseMhXml(xml) {
   const der = decodeB64(encodied);
   const pem = derToPemPkcs8(der);
 
-  // Subject: preferir commonName del subject, luego organizationName
+  // Subject: preferir organizationName o surname del subject, luego commonName
   const subjectXml = parseXmlTag(xml, 'subject');
-  const cn = parseXmlTag(subjectXml, 'commonName') || parseXmlTag(subjectXml, 'organizationName') || 'Emisor';
+  const cn = parseXmlTag(subjectXml, 'organizationName') || parseXmlTag(subjectXml, 'surname') || parseXmlTag(subjectXml, 'commonName') || 'Emisor';
 
   // Fecha de vencimiento
   const validityXml = parseXmlTag(xml, 'validity');

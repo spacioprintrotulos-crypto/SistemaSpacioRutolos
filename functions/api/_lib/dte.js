@@ -285,7 +285,7 @@ export function buildCCF({ emisor, ambiente, correlativo, receptor, items, condi
 }
 
 // ---------- NOTA DE CRÉDITO (05) ----------
-export function buildNotaCredito({ emisor, ambiente, correlativo, receptor, items, docRelacionado, extension, apendice }) {
+export function buildNotaCredito({ emisor, ambiente, correlativo, receptor, items, docRelacionado, ivaPerci1 = 0, ivaRete1 = 0, reteRenta = 0, extension, apendice }) {
   const identificacion = buildIdentificacion('05', ambiente, emisor, correlativo);
 
   const documentoRelacionado = [{
@@ -307,16 +307,16 @@ export function buildNotaCredito({ emisor, ambiente, correlativo, receptor, item
   const tributos = totalGravada > 0
     ? [{ codigo: '20', descripcion: 'Impuesto al Valor Agregado 13%', valor: valorIva }]
     : null;
-  const montoTotalOperacion = r2(subTotal + valorIva);
+  const montoTotalOperacion = r2(subTotal + valorIva + ivaPerci1 - ivaRete1 - reteRenta);
 
   const resumen = {
     totalNoSuj, totalExenta, totalGravada, subTotalVentas,
     descuNoSuj: 0, descuExenta: 0, descuGravada: 0, totalDescu: 0,
     tributos,
     subTotal,
-    ivaPerci1: 0,
-    ivaRete1: 0,
-    reteRenta: 0,
+    ivaPerci1: r2(ivaPerci1),
+    ivaRete1: r2(ivaRete1),
+    reteRenta: r2(reteRenta),
     montoTotalOperacion,
     totalLetras: numeroALetras(montoTotalOperacion),
     condicionOperacion: 1,

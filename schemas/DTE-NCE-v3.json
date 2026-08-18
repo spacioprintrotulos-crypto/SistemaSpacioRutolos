@@ -1171,6 +1171,13 @@
                     "exclusiveMaximum" : 100000000000,
                     "multipleOf" : 0.01
                 },
+                "reteRenta" : {
+                    "type" : "number",
+                    "description" : "Retención de Renta",
+                    "minimum" : 0,
+                    "exclusiveMaximum" : 100000000000,
+                    "multipleOf" : 0.01
+                },
                 "montoTotalOperacion" : {
                     "type" : "number",
                     "description" : "Monto Total de Operacion (totalExenta + totalNoSuj + totalAfecta + totalIva – (descuentos y rebajas) + (Impuestos y Contribuciones)).",

@@ -127,15 +127,18 @@ input, select, textarea { font-family: inherit; }
 /* ---------- Menú ---------- */
 .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
 .menu-card {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
   background: #fff; border: 1px solid var(--borde); border-radius: var(--radio);
-  padding: 22px; text-decoration: none; color: var(--texto);
+  padding: 26px 20px; text-decoration: none; color: var(--texto);
   transition: transform .15s, box-shadow .15s;
 }
 .menu-card:hover { transform: translateY(-3px); box-shadow: var(--sombra); }
 .menu-card .icon {
-  width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 24px;
+  width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+  color: #fff; margin-bottom: 4px; box-shadow: 0 8px 18px rgba(0,0,0,.08);
+}
+.menu-card .icon svg {
+  width: 26px; height: 26px; stroke-width: 2.2;
 }
 .menu-card.green .icon { background: linear-gradient(135deg, #16a34a, #4ade80); }
 .menu-card.purple .icon { background: linear-gradient(135deg, #7c3aed, #c084fc); }
@@ -143,8 +146,8 @@ input, select, textarea { font-family: inherit; }
 .menu-card.orange .icon { background: linear-gradient(135deg, #d97706, #fbbf24); }
 .menu-card.slate .icon { background: linear-gradient(135deg, #475569, #94a3b8); }
 .menu-card.pink .icon { background: linear-gradient(135deg, #db2777, #f472b6); }
-.menu-card .card-title { font-size: 16px; font-weight: 800; }
-.menu-card .card-sub { font-size: 12.5px; color: var(--gris); }
+.menu-card .card-title { font-size: 16.5px; font-weight: 800; }
+.menu-card .card-sub { font-size: 12.5px; color: var(--gris); line-height: 1.4; }
 
 /* ---------- Títulos de sección ---------- */
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }

@@ -36,6 +36,7 @@ const ICONS = {
   dtes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
   config: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   iva: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
+  cotizacion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
 };
 
 // ---------- Router ----------
@@ -52,6 +53,7 @@ function route() {
     case 'factura': state.tipoDte = '01'; renderFormulario(app); break;
     case 'credito': state.tipoDte = '03'; renderFormulario(app); break;
     case 'nota': state.tipoDte = '05'; renderFormulario(app); break;
+    case 'cotizaciones': renderCotizaciones(app); break;
     case 'clientes': renderClientes(app); break;
     case 'dtes': renderDTEs(app, rest[0]); break;
     case 'configuracion': renderConfiguracion(app); break;
@@ -175,6 +177,7 @@ function renderMenu(app) {
     { ruta: '#/factura', cls: 'green', t: 'Factura', s: 'Documento tributario. Precios incluyen IVA.', icon: 'factura' },
     { ruta: '#/credito', cls: 'purple', t: 'Crédito Fiscal', s: 'CCF para contribuyentes. Con retenciones.', icon: 'credito' },
     { ruta: '#/nota', cls: 'blue', t: 'Nota de Crédito', s: 'Anula o modifica una Factura o CCF emitida.', icon: 'nota' },
+    { ruta: '#/cotizaciones', cls: 'amber', t: 'Cotizaciones', s: 'Crea cotizaciones, calcula IVA 13% y genera PDF.', icon: 'cotizacion' },
     { ruta: '#/clientes', cls: 'orange', t: 'Clientes', s: 'Directorio de receptores de tus DTEs.', icon: 'clientes' },
     { ruta: '#/dtes', cls: 'slate', t: 'DTEs Emitidos', s: 'Historial, consulta y anulación de documentos.', icon: 'dtes' },
     { ruta: '#/iva', cls: 'teal', t: 'IVA', s: 'En Construcción', icon: 'iva' },
@@ -850,6 +853,581 @@ window.anular = async (id) => {
     document.querySelector('.modal-backdrop')?.remove();
     cargarDTEs();
   } catch (e) { toast(e.error, 'error'); }
+};
+
+// ---------- VISTA: Cotizaciones ----------
+let cotizacionesCache = [];
+let cotClientesCache = [];
+let nextCorrelativoCot = '0011';
+let cotItems = [{ quantity: 1, description: '', price: 0 }];
+
+function displayDateES(input) {
+  const months = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+  const parts = String(input || '').split('-');
+  if (parts.length !== 3) return input || '';
+  const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  if (Number.isNaN(date.getTime())) return input || '';
+  return `${String(date.getDate()).padStart(2, '0')}  de ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function wrapTextLines(text, maxChars, maxLines = 7) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length > maxChars && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines);
+    kept[maxLines - 1] = `${kept[maxLines - 1].slice(0, Math.max(0, maxChars - 3))}...`;
+    return kept;
+  }
+  return lines.length ? lines : [''];
+}
+
+function svgTextElement(x, y, text, opts = {}) {
+  const size = opts.size || 8;
+  const weight = opts.weight || '400';
+  const anchor = opts.anchor || 'start';
+  const fill = opts.fill || '#111111';
+  const transform = opts.transform ? ` transform="${opts.transform}"` : '';
+  return `<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" fill="${fill}"${transform}>${esc(text)}</text>`;
+}
+
+function generateCotizacionSvg(quote) {
+  const delivery = Number(quote.dias_entrega) === 1 ? '1 Dia' : `${quote.dias_entrega || 1} Dias`;
+  const items = quote.items || [];
+  const itemRows = items.slice(0, 10);
+  const tableX = 50;
+  const tableY = 255;
+  const tableW = 495;
+  const headerH = 31;
+  const rowH = 25;
+  const colQty = 52;
+  const colDesc = 248;
+  const colUnit = 90;
+  const colTotal = 105;
+  const xDesc = tableX + colQty;
+  const xUnit = xDesc + colDesc;
+  const xTotal = xUnit + colUnit;
+  const tableBottom = tableY + headerH + (itemRows.length * rowH);
+  const notesText = String(quote.notas || '').trim();
+  const notesLines = notesText ? wrapTextLines(notesText.toUpperCase(), 95, 4) : [];
+  const notesBlockH = notesLines.length ? 14 + notesLines.length * 10 + 6 : 0;
+  const totalsY = Math.max(548, tableBottom + notesBlockH + 18);
+  const notesY = totalsY - notesBlockH;
+
+  let itemText = '';
+  itemRows.forEach((item, index) => {
+    const y = tableY + headerH + index * rowH;
+    const fill = index % 2 === 0 ? '#ffffff' : '#f6f7f8';
+    itemText += `<rect x="${tableX}" y="${y}" width="${tableW}" height="${rowH}" fill="${fill}"/>`;
+    itemText += svgTextElement(tableX + 26, y + 16, item.quantity, { size: 8, anchor: 'middle', fill: '#242a31' });
+    wrapTextLines(String(item.description || '').toUpperCase(), 45, 2).forEach((line, lineIndex) => {
+      itemText += svgTextElement(xDesc + 12, y + 13 + lineIndex * 8.3, line, { size: 6.4, fill: '#242a31' });
+    });
+    itemText += svgTextElement(xUnit + 14, y + 16, '$', { size: 8, fill: '#242a31' });
+    itemText += svgTextElement(xUnit + colUnit - 12, y + 16, Number(item.price || 0).toFixed(2), { size: 8, anchor: 'end', fill: '#242a31' });
+    itemText += svgTextElement(xTotal + 14, y + 16, '$', { size: 8, fill: '#242a31' });
+    itemText += svgTextElement(tableX + tableW - 12, y + 16, Number(item.quantity * item.price).toFixed(2), { size: 8, anchor: 'end', fill: '#242a31' });
+  });
+
+  const paymentTerms = String(quote.condiciones_pago || 'Contra entrega');
+  const paymentLines = wrapTextLines(paymentTerms.toUpperCase(), 34, 2)
+    .map((line, index) => svgTextElement(64, totalsY + 85 + (index * 10), line, { size: 8.5, weight: '700', fill: '#17202a' }))
+    .join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="595" height="842" viewBox="0 0 595 842" style="background:#fff;display:block;margin:0 auto">
+  <rect width="595" height="842" fill="#f3f4f6"/>
+  <rect x="35" y="34" width="525" height="774" fill="#ffffff"/>
+  <rect x="35" y="775" width="525" height="33" fill="#2b3036"/>
+  <image href="assets/image1.png" x="58" y="58" width="150" height="38" preserveAspectRatio="xMinYMid meet"/>
+  <image href="assets/image2.png" x="172" y="386" width="250" height="62" opacity="0.09" preserveAspectRatio="xMidYMid meet"/>
+
+  ${svgTextElement(545, 88, 'COTIZACION', { size: 31, weight: '700', anchor: 'end', fill: '#2b3036' })}
+  ${svgTextElement(545, 108, `N# ${quote.correlative || quote.correlativo}`, { size: 9, weight: '700', anchor: 'end', fill: '#1f4e9a' })}
+
+  <line x1="50" y1="132" x2="545" y2="132" stroke="#d8dde3" stroke-width="1"/>
+  ${svgTextElement(50, 156, 'COTIZACION PARA', { size: 8, weight: '700', fill: '#69717b' })}
+  ${svgTextElement(50, 176, String(quote.customer || quote.cliente_nombre || '').toUpperCase(), { size: 16, weight: '700', fill: '#17202a' })}
+  ${svgTextElement(50, 196, `TEL: ${quote.phone || quote.telefono || ''}`, { size: 8.8, fill: '#3b4652' })}
+  ${svgTextElement(50, 211, `San Salvador ${displayDateES(quote.date || quote.fecha)}`, { size: 8.8, fill: '#3b4652' })}
+
+  ${svgTextElement(355, 156, 'DATOS DE CONTACTO', { size: 8, weight: '700', fill: '#69717b' })}
+  ${svgTextElement(355, 176, 'Residencial La Cima Av 3-D', { size: 8.8, fill: '#3b4652' })}
+  ${svgTextElement(355, 191, 'San Salvador', { size: 8.8, fill: '#3b4652' })}
+  ${svgTextElement(355, 206, '7210-8369 / 2232-3353', { size: 8.8, weight: '700', fill: '#17202a' })}
+  <image href="assets/image3.png" x="507" y="194" width="15" height="16" preserveAspectRatio="xMidYMid meet"/>
+
+  ${svgTextElement(50, 242, 'DE ACUERDO A SU SOLICITUD TENEMOS EL AGRADO DE ENVIARLE LA COTIZACION QUE SE DESCRIBE A CONTINUACION', { size: 7, fill: '#3b4652' })}
+
+  <rect x="${tableX}" y="${tableY}" width="${tableW}" height="${headerH}" fill="#2b3036"/>
+  ${svgTextElement(tableX + 26, tableY + 20, 'CANT.', { size: 8, weight: '700', anchor: 'middle', fill: '#ffffff' })}
+  ${svgTextElement(xDesc + 12, tableY + 20, 'DESCRIPCION', { size: 8, weight: '700', fill: '#ffffff' })}
+  ${svgTextElement(xUnit + 45, tableY + 20, 'PRECIO', { size: 8, weight: '700', anchor: 'middle', fill: '#ffffff' })}
+  ${svgTextElement(xTotal + 52, tableY + 20, 'TOTAL', { size: 8, weight: '700', anchor: 'middle', fill: '#ffffff' })}
+  ${itemText}
+
+  <rect x="${tableX}" y="${tableY}" width="${tableW}" height="${headerH + itemRows.length * rowH}" fill="none" stroke="#d8dde3" stroke-width="1"/>
+  <line x1="${xDesc}" y1="${tableY}" x2="${xDesc}" y2="${tableBottom}" stroke="#e0e4e8" stroke-width="1"/>
+  <line x1="${xUnit}" y1="${tableY}" x2="${xUnit}" y2="${tableBottom}" stroke="#e0e4e8" stroke-width="1"/>
+  <line x1="${xTotal}" y1="${tableY}" x2="${xTotal}" y2="${tableBottom}" stroke="#e0e4e8" stroke-width="1"/>
+
+  ${notesLines.length ? `
+  <rect x="50" y="${notesY}" width="495" height="${notesBlockH}" fill="#f6f7f8" stroke="#d8dde3" stroke-width="1"/>
+  ${svgTextElement(62, notesY + 9, 'NOTAS', { size: 7, weight: '700', fill: '#69717b' })}
+  ${notesLines.map((line, index) => svgTextElement(62, notesY + 21 + index * 10, line, { size: 8, fill: '#3b4652' })).join('')}
+  ` : ''}
+
+  <rect x="350" y="${totalsY}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
+  <rect x="350" y="${totalsY + 31}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
+  <rect x="350" y="${totalsY + 62}" width="195" height="36" fill="#2b3036"/>
+  ${svgTextElement(365, totalsY + 20, 'SUBTOTAL', { size: 8.5, fill: '#3b4652' })}
+  ${svgTextElement(533, totalsY + 20, `$ ${Number(quote.subtotal || 0).toFixed(2)}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
+  ${svgTextElement(365, totalsY + 51, 'IVA 13%', { size: 8.5, fill: '#3b4652' })}
+  ${svgTextElement(533, totalsY + 51, `$ ${Number(quote.iva || 0).toFixed(2)}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
+  ${svgTextElement(365, totalsY + 85, 'TOTAL', { size: 12, weight: '700', fill: '#ffffff' })}
+  ${svgTextElement(533, totalsY + 85, `$ ${Number(quote.total || 0).toFixed(2)}`, { size: 12, weight: '700', anchor: 'end', fill: '#ffffff' })}
+
+  ${svgTextElement(50, totalsY + 19, 'TIEMPO DE ENTREGA', { size: 8, weight: '700', fill: '#69717b' })}
+  ${svgTextElement(64, totalsY + 39, delivery, { size: 12, weight: '700', fill: '#17202a' })}
+  ${svgTextElement(50, totalsY + 72, 'CONDICIONES DE PAGO', { size: 8, weight: '700', fill: '#69717b' })}
+  ${paymentLines}
+  ${svgTextElement(50, totalsY + 125, 'COTIZACION VALIDA DURANTE 15 DIAS HABILES', { size: 8, weight: '700', fill: '#3b4652' })}
+  ${svgTextElement(50, totalsY + 142, 'EN ESPERA DE SUS RESPETABLES ORDENES NOS SUSCRIBIMOS ATENTAMENTE', { size: 7.4, fill: '#69717b' })}
+
+  <image href="assets/image4.png" x="396" y="${totalsY + 112}" width="94" height="46" preserveAspectRatio="xMidYMid meet"/>
+  <line x1="365" y1="${totalsY + 172}" x2="530" y2="${totalsY + 172}" stroke="#2b3036" stroke-width="1"/>
+  ${svgTextElement(448, totalsY + 188, 'Lic. Ever Odir Ramos', { size: 8.5, anchor: 'middle', fill: '#17202a' })}
+  ${svgTextElement(448, totalsY + 201, 'REPRESENTANTE', { size: 6.5, weight: '700', anchor: 'middle', fill: '#69717b' })}
+
+  ${svgTextElement(74, 798, '7210-8369 / 2232-3353', { size: 8, fill: '#ffffff' })}
+  ${svgTextElement(250, 798, 'Residencial La Cima Av 3-D, San Salvador', { size: 8, fill: '#ffffff' })}
+</svg>`;
+}
+
+function renderCotizaciones(app, activeTab = 'nueva') {
+  app.innerHTML = appShell(`
+    <div class="page-head">
+      <div>
+        <div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / Cotizaciones</div>
+        <h2>Módulo de Cotizaciones Spacio</h2>
+      </div>
+      <div class="actions">
+        <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
+      </div>
+    </div>
+
+    <div class="tabs-nav">
+      <button class="tab-btn ${activeTab === 'nueva' ? 'active' : ''}" id="tab-nueva" onclick="switchCotTab('nueva')">📝 Nueva Cotización</button>
+      <button class="tab-btn ${activeTab === 'historial' ? 'active' : ''}" id="tab-historial" onclick="switchCotTab('historial')">📋 Historial de Cotizaciones (<span id="cot-badge-count">...</span>)</button>
+    </div>
+
+    <div id="cot-view-container">
+      <div class="center text-gris" style="padding:40px">Cargando cotizaciones...</div>
+    </div>
+  `);
+
+  window.switchCotTab = (tab) => {
+    $('#tab-nueva')?.classList.toggle('active', tab === 'nueva');
+    $('#tab-historial')?.classList.toggle('active', tab === 'historial');
+    if (tab === 'nueva') pintarNuevaCotizacion();
+    else pintarHistorialCotizaciones();
+  };
+
+  API.cotizaciones().then((r) => {
+    cotizacionesCache = r.cotizaciones || [];
+    cotClientesCache = r.clientes || [];
+    nextCorrelativoCot = r.nextCorrelativo || '0001';
+    const badge = $('#cot-badge-count');
+    if (badge) badge.textContent = cotizacionesCache.length;
+    if (activeTab === 'nueva') pintarNuevaCotizacion();
+    else pintarHistorialCotizaciones();
+  }).catch((e) => toast(e.error || 'Error al cargar cotizaciones', 'error'));
+}
+
+function pintarNuevaCotizacion() {
+  const container = $('#cot-view-container');
+  if (!container) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  container.innerHTML = `
+    <datalist id="dl-cot-clientes">
+      ${cotClientesCache.map((c) => `<option value="${esc(c.nombre)}"></option>`).join('')}
+    </datalist>
+
+    <div class="card">
+      <h3><span class="badge">1</span> Datos generales de la cotización</h3>
+      <div class="grid-3">
+        <div class="form-field">
+          <label>N° Correlativo</label>
+          <input id="cot-correlativo" value="${esc(nextCorrelativoCot)}" placeholder="Ej: 0011">
+        </div>
+        <div class="form-field">
+          <label>Fecha de emisión</label>
+          <input id="cot-fecha" type="date" value="${today}">
+        </div>
+        <div class="form-field">
+          <label>Cliente / Razón Social</label>
+          <input id="cot-cliente" list="dl-cot-clientes" placeholder="Escribe o selecciona cliente...">
+        </div>
+        <div class="form-field">
+          <label>Teléfono de contacto</label>
+          <input id="cot-telefono" placeholder="Ej: 7210-8369 o +503...">
+        </div>
+        <div class="form-field">
+          <label>Tiempo de entrega (días)</label>
+          <input id="cot-dias" type="number" min="1" value="1">
+        </div>
+        <div class="form-field">
+          <label>Condiciones de pago</label>
+          <input id="cot-condiciones" value="Contra entrega" placeholder="Ej: Contra entrega, 50% Anticipo...">
+        </div>
+        <div class="form-field" style="grid-column: 1 / -1">
+          <label>Notas / Observaciones (opcional)</label>
+          <textarea id="cot-notas" rows="2" placeholder="Ej: No incluye instalación, cotización válida por 15 días..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge">2</span> Productos y servicios a cotizar</h3>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width:90px">Cantidad</th>
+            <th>Descripción del producto / trabajo</th>
+            <th style="width:140px">Precio unitario</th>
+            <th style="width:130px;text-align:right">Total</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="cot-items-body"></tbody>
+      </table>
+      <div class="btn-add-item">
+        <button class="btn btn-secundario" id="btn-cot-add-item">+ Agregar producto / línea</button>
+      </div>
+    </div>
+
+    <div class="card flex" style="justify-content:space-between;align-items:center;padding:24px;flex-wrap:wrap;gap:18px">
+      <div class="resumen-box" style="min-width:320px;flex:1">
+        <div class="resumen-row"><span>Subtotal</span><span id="cot-res-subtotal">$0.00</span></div>
+        <div class="resumen-row"><span>IVA (13%)</span><span id="cot-res-iva">$0.00</span></div>
+        <div class="resumen-row total"><span>Total a cotizar</span><span id="cot-res-total">$0.00</span></div>
+      </div>
+      <div class="flex" style="gap:12px">
+        <button class="btn btn-ghost" onclick="limpiarFormCotizacion()">Limpiar</button>
+        <button class="btn btn-verde" id="btn-cot-guardar" style="font-size:15px;padding:14px 28px;box-shadow:0 10px 25px rgba(22,163,74,.3)">
+          💾 Guardar y Generar PDF / Imprimir
+        </button>
+      </div>
+    </div>
+  `;
+
+  $('#cot-cliente')?.addEventListener('input', (e) => {
+    const found = cotClientesCache.find((c) => c.nombre.toLowerCase() === e.target.value.trim().toLowerCase());
+    if (found && found.telefono) {
+      $('#cot-telefono').value = found.telefono;
+    }
+  });
+
+  const renderItemsRows = () => {
+    const tbody = $('#cot-items-body');
+    if (!tbody) return;
+    tbody.innerHTML = cotItems.map((it, idx) => `
+      <tr>
+        <td><input type="number" min="1" step="1" class="cot-item-qty" data-idx="${idx}" value="${it.quantity || 1}"></td>
+        <td><input type="text" class="cot-item-desc" data-idx="${idx}" value="${esc(it.description || '')}" placeholder="Descripción del producto o servicio..."></td>
+        <td><input type="number" min="0" step="0.01" class="cot-item-price num" data-idx="${idx}" value="${it.price || ''}" placeholder="0.00"></td>
+        <td style="text-align:right;font-weight:700" class="cot-item-total">${fmtMoneda((Number(it.quantity) || 0) * (Number(it.price) || 0))}</td>
+        <td style="text-align:center">
+          ${cotItems.length > 1 ? `<button class="row-remove" onclick="removeCotItem(${idx})">×</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+
+    $$('.cot-item-qty', tbody).forEach((input) => input.addEventListener('input', (e) => {
+      cotItems[e.target.dataset.idx].quantity = Number(e.target.value) || 0;
+      updateCotTotals();
+    }));
+    $$('.cot-item-desc', tbody).forEach((input) => input.addEventListener('input', (e) => {
+      cotItems[e.target.dataset.idx].description = e.target.value;
+    }));
+    $$('.cot-item-price', tbody).forEach((input) => input.addEventListener('input', (e) => {
+      cotItems[e.target.dataset.idx].price = Number(e.target.value) || 0;
+      updateCotTotals();
+    }));
+
+    updateCotTotals();
+  };
+
+  window.removeCotItem = (idx) => {
+    if (cotItems.length > 1) {
+      cotItems.splice(idx, 1);
+      renderItemsRows();
+    }
+  };
+
+  $('#btn-cot-add-item')?.addEventListener('click', () => {
+    cotItems.push({ quantity: 1, description: '', price: 0 });
+    renderItemsRows();
+  });
+
+  const updateCotTotals = () => {
+    const rows = $$('#cot-items-body tr');
+    let subtotal = 0;
+    cotItems.forEach((it, idx) => {
+      const lineTotal = (Number(it.quantity) || 0) * (Number(it.price) || 0);
+      subtotal += lineTotal;
+      if (rows[idx]) {
+        const totalEl = rows[idx].querySelector('.cot-item-total');
+        if (totalEl) totalEl.textContent = fmtMoneda(lineTotal);
+      }
+    });
+    const iva = subtotal * 0.13;
+    const total = subtotal + iva;
+    $('#cot-res-subtotal').textContent = fmtMoneda(subtotal);
+    $('#cot-res-iva').textContent = fmtMoneda(iva);
+    $('#cot-res-total').textContent = fmtMoneda(total);
+  };
+
+  renderItemsRows();
+
+  $('#btn-cot-guardar')?.addEventListener('click', async () => {
+    const cliente = $('#cot-cliente').value.trim();
+    if (!cliente) return toast('Ingresa el nombre del cliente', 'error');
+
+    const validItems = cotItems
+      .map((it) => ({
+        quantity: Number(it.quantity || 0),
+        description: String(it.description || '').trim(),
+        price: Number(it.price || 0),
+      }))
+      .filter((it) => it.quantity > 0 && it.description);
+
+    if (!validItems.length) return toast('Agrega al menos un producto con descripción y precio', 'error');
+
+    const payload = {
+      correlativo: $('#cot-correlativo').value.trim(),
+      fecha: $('#cot-fecha').value,
+      cliente_nombre: cliente,
+      telefono: $('#cot-telefono').value.trim(),
+      dias_entrega: Number($('#cot-dias').value) || 1,
+      condiciones_pago: $('#cot-condiciones').value.trim(),
+      notas: $('#cot-notas').value.trim(),
+      items: validItems,
+    };
+
+    const btn = $('#btn-cot-guardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+      const r = await API.crearCotizacion(payload);
+      toast(`Cotización N# ${r.cotizacion.correlativo} guardada con éxito`, 'success');
+      modalVerCotizacion(r.cotizacion);
+      cotItems = [{ quantity: 1, description: '', price: 0 }];
+      const stateResp = await API.cotizaciones();
+      cotizacionesCache = stateResp.cotizaciones || [];
+      nextCorrelativoCot = stateResp.nextCorrelativo || '0001';
+      const badge = $('#cot-badge-count');
+      if (badge) badge.textContent = cotizacionesCache.length;
+      pintarNuevaCotizacion();
+    } catch (e) {
+      toast(e.error || 'Error al guardar cotización', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Guardar y Generar PDF / Imprimir';
+    }
+  });
+
+  window.limpiarFormCotizacion = () => {
+    cotItems = [{ quantity: 1, description: '', price: 0 }];
+    pintarNuevaCotizacion();
+  };
+}
+
+function pintarHistorialCotizaciones() {
+  const container = $('#cot-view-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:18px">
+        <input id="buscar-cot" placeholder="Buscar por cliente, N° correlativo, teléfono o producto..." style="min-width:320px;padding:10px 14px;border:1.5px solid var(--input-border);border-radius:12px;background:var(--input-bg);color:var(--texto)">
+        <button class="btn btn-verde" onclick="switchCotTab('nueva')">+ Nueva cotización</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>N° Corr.</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Teléfono</th>
+            <th>Subtotal</th>
+            <th>IVA (13%)</th>
+            <th>Total</th>
+            <th style="text-align:right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="cot-historial-body"></tbody>
+      </table>
+    </div>
+  `;
+
+  const renderRows = (query = '') => {
+    const q = query.trim().toLowerCase();
+    const filtered = cotizacionesCache.filter((c) => {
+      if (!q) return true;
+      const itemsStr = (c.items || []).map((it) => it.description).join(' ');
+      const str = `${c.correlativo} ${c.cliente_nombre} ${c.telefono || ''} ${itemsStr}`.toLowerCase();
+      return str.includes(q);
+    });
+
+    const tbody = $('#cot-historial-body');
+    if (!tbody) return;
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="center text-gris" style="padding:30px">No se encontraron cotizaciones</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((c) => `
+      <tr>
+        <td><b>${esc(c.correlativo)}</b></td>
+        <td>${esc(c.fecha)}</td>
+        <td><b>${esc(c.cliente_nombre)}</b></td>
+        <td>${esc(c.telefono || '—')}</td>
+        <td>${fmtMoneda(c.subtotal)}</td>
+        <td>${fmtMoneda(c.iva)}</td>
+        <td><b style="color:var(--azul)">${fmtMoneda(c.total)}</b></td>
+        <td class="flex" style="justify-content:flex-end;gap:8px">
+          <button class="btn btn-secundario" onclick="abrirCotizacionId(${c.id})">👁️ Ver / Imprimir</button>
+          <button class="btn btn-rojo" onclick="eliminarCotizacionId(${c.id})">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  $('#buscar-cot')?.addEventListener('input', (e) => renderRows(e.target.value));
+  renderRows();
+}
+
+window.abrirCotizacionId = (id) => {
+  const found = cotizacionesCache.find((c) => c.id == id);
+  if (found) modalVerCotizacion(found);
+  else toast('Cotización no encontrada', 'error');
+};
+
+window.eliminarCotizacionId = async (id) => {
+  if (!confirm('¿Seguro que deseas eliminar esta cotización?')) return;
+  try {
+    await API.eliminarCotizacion(id);
+    toast('Cotización eliminada', 'success');
+    cotizacionesCache = cotizacionesCache.filter((c) => c.id != id);
+    const badge = $('#cot-badge-count');
+    if (badge) badge.textContent = cotizacionesCache.length;
+    pintarHistorialCotizaciones();
+  } catch (e) {
+    toast(e.error || 'Error al eliminar cotización', 'error');
+  }
+};
+
+window.modalVerCotizacion = (quote) => {
+  const svgMarkup = generateCotizacionSvg(quote);
+  const clientClean = (quote.cliente_nombre || quote.customer || 'Cliente').replace(/\s+/g, '_');
+  const fileName = `Cotizacion_${clientClean}_${quote.correlativo || quote.correlative}`;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
+      <div class="modal" style="max-width:880px">
+        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3>Cotización N# ${esc(quote.correlativo || quote.correlative)} — ${esc(quote.cliente_nombre || quote.customer)}</h3>
+          <div class="badge-estado PROCESADO">Generada</div>
+        </div>
+
+        <div class="cotizacion-svg-container" id="cotizacion-print-area">
+          ${svgMarkup}
+        </div>
+
+        <div class="modal-actions" style="margin-top:20px;justify-content:space-between">
+          <div>
+            <button class="btn btn-secundario" onclick="convertirCotADTE(${quote.id || 0})">🔄 Emitir Factura / CCF</button>
+          </div>
+          <div class="flex" style="gap:10px">
+            <button class="btn btn-ghost" onclick="descargarCotSvg('${fileName}')">⬇️ Descargar SVG</button>
+            <button class="btn btn-verde" onclick="imprimirCotSvg('${fileName}')">🖨️ Imprimir / Guardar PDF</button>
+            <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  window.descargarCotSvg = (name) => {
+    const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}.svg`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  window.imprimirCotSvg = (title) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          @page { size: portrait; margin: 0; }
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: #fff; }
+          svg { width: 100vw; height: 100vh; max-width: 100%; max-height: 100%; }
+        </style>
+      </head>
+      <body>
+        ${svgMarkup}
+        <script>
+          window.onload = () => {
+            setTimeout(() => { window.print(); window.close(); }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  window.convertirCotADTE = (id) => {
+    const found = cotizacionesCache.find((c) => c.id == id) || quote;
+    document.querySelector('.modal-backdrop')?.remove();
+    state.items = (found.items || []).map((it) => ({
+      cantidad: it.quantity || 1,
+      descripcion: it.description || '',
+      precioUni: it.price || 0,
+      montoDescu: 0,
+      tipoVenta: 'gravada',
+      uniMedida: 59,
+    }));
+    location.hash = '#/factura';
+    toast('Ítems cargados en nueva Factura', 'info');
+  };
 };
 
 // ---------- VISTA: Configuración ----------

@@ -56,4 +56,10 @@ const API = {
   probarMH(body) { return this.post('/api/configuracion/probar-mh', body); },
   subirFirma(archivoB64, password, ambiente) { return this.post('/api/configuracion/firma', { archivoB64, password, ambiente }); },
   eliminarFirma(ambiente) { return this.del(`/api/configuracion/firma?ambiente=${encodeURIComponent(ambiente)}`); },
+
+  // ---- Cotizaciones ----
+  cotizaciones(q) { return this.get('/api/cotizaciones', q ? { q } : undefined); },
+  cotizacion(id) { return this.get(`/api/cotizaciones/${id}`); },
+  crearCotizacion(c) { return this.post('/api/cotizaciones', c); },
+  eliminarCotizacion(id) { return this.del(`/api/cotizaciones/${id}`); },
 };

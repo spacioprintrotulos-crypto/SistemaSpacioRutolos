@@ -62,8 +62,28 @@ function route() {
 
 window.addEventListener('hashchange', route);
 
+// ---------- Modo Oscuro / Claro ----------
+function getThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return isDark
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+}
+
+window.toggleTheme = () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('fac2026_theme', next);
+  document.querySelectorAll('.btn-theme-toggle').forEach((btn) => {
+    btn.innerHTML = getThemeIcon();
+    btn.setAttribute('title', next === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  });
+};
+
 // ---------- Layout común ----------
 function appShell(contenido) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   return `
   <div class="app-shell">
     <header class="app-top">
@@ -73,6 +93,9 @@ function appShell(contenido) {
       </div>
       <div class="app-userbox">
         <span>${esc(state.usuario?.nombre || state.usuario?.usuario || 'Usuario')}</span>
+        <button type="button" class="btn-theme-toggle" onclick="toggleTheme()" title="${isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}" aria-label="Cambiar tema">
+          ${getThemeIcon()}
+        </button>
         <a href="#" onclick="logout(event)">Salir</a>
       </div>
     </header>
@@ -89,6 +112,7 @@ async function logout(e) {
 
 // ---------- VISTA: Login ----------
 function renderLogin(app) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   app.innerHTML = `
   <div class="login-page">
     <div class="login-left">
@@ -102,6 +126,9 @@ function renderLogin(app) {
       </div>
     </div>
     <div class="login-right">
+      <button type="button" class="btn-theme-toggle login-theme-btn" onclick="toggleTheme()" title="${isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}" aria-label="Cambiar tema">
+        ${getThemeIcon()}
+      </button>
       <div class="login-card-wrapper">
         <div class="login-card">
           <h2>Iniciar sesión</h2>
@@ -594,7 +621,7 @@ function renderClientes(app) {
       <div><div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / Clientes</div><h2>Directorio de Clientes</h2></div>
       <div class="actions">
         <a href="#/" class="btn-volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Volver al inicio</a>
-        <input id="buscar-cliente" placeholder="Buscar por nombre, NIT o NRC..." style="padding:10px 14px;border:1.5px solid var(--borde);border-radius:12px;min-width:240px">
+        <input id="buscar-cliente" placeholder="Buscar por nombre, NIT o NRC..." style="min-width:260px">
         <button class="btn btn-verde" onclick="modalCliente()">+ Nuevo cliente</button>
       </div>
     </div>
@@ -847,9 +874,9 @@ function pintarConfig(r) {
   const firmaOk = mh.firma_activa;
 
   $('#cfg-body').innerHTML = `
-    <div class="card flex" style="justify-content:space-between;align-items:center;margin-bottom:18px;padding:16px 22px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;flex-wrap:wrap;gap:12px">
+    <div class="card card-banner flex" style="justify-content:space-between;align-items:center;margin-bottom:18px;padding:16px 22px;border-radius:16px;flex-wrap:wrap;gap:12px">
       <div>
-        <strong style="font-size:15px;color:#0f172a">Panel de Configuración Global</strong>
+        <strong style="font-size:15px">Panel de Configuración Global</strong>
         <div class="text-gris" style="font-size:12.5px">Puedes guardar todos los datos juntos con un solo clic o guardar cada sección por separado.</div>
       </div>
       <div class="flex" style="gap:10px;flex-wrap:wrap">
@@ -914,9 +941,9 @@ function pintarConfig(r) {
       <div class="mt"><button class="btn btn-secundario" id="btn-guardar-corr">Guardar correlativos</button></div>
     </div>
 
-    <div class="card flex" style="justify-content:space-between;align-items:center;margin-top:20px;padding:20px 24px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:18px;flex-wrap:wrap;gap:14px">
+    <div class="card card-banner flex" style="justify-content:space-between;align-items:center;margin-top:20px;padding:20px 24px;border-radius:18px;flex-wrap:wrap;gap:14px">
       <div>
-        <strong style="font-size:16px;display:block;color:#0f172a">¿Terminaste de configurar?</strong>
+        <strong style="font-size:16px;display:block">¿Terminaste de configurar?</strong>
         <span class="text-gris" style="font-size:13px">Guarda emisor, credenciales MH de este ambiente y correlativos simultáneamente.</span>
       </div>
       <div class="flex" style="gap:12px;flex-wrap:wrap">

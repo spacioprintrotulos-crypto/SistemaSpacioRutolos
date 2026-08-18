@@ -841,11 +841,12 @@ function pintarConfig(r) {
     </div>
 
     <div class="card">
-      <h3>Credenciales del Ministerio de Hacienda</h3>
+      <h3>Credenciales de aplicación API del Ministerio de Hacienda</h3>
+      <div class="alert alert-warn mb">Estas credenciales son distintas a las usadas para iniciar sesión en el portal de factura.gob.sv. El MH entrega la contraseña de aplicación/API y esta vence periódicamente.</div>
       <div class="grid-3">
         <div class="form-field"><label>Ambiente</label><select id="mh-ambiente"><option value="00" ${mh.ambiente === '00' ? 'selected' : ''}>Pruebas (apitest)</option><option value="01" ${mh.ambiente === '01' ? 'selected' : ''}>Producción</option></select></div>
-        <div class="form-field"><label>Usuario (NIT)</label><input id="mh-user" value="${esc(mh.api_user || '')}"></div>
-        <div class="form-field"><label>Contraseña</label><input id="mh-pwd" type="password" placeholder="${mh.api_pwd_configurada ? '•••••••• (guardada)' : 'Contraseña del portal MH'}"></div>
+        <div class="form-field"><label>Usuario de aplicación/API</label><input id="mh-user" value="${esc(mh.api_user || '')}"></div>
+        <div class="form-field"><label>Contraseña de aplicación/API</label><input id="mh-pwd" type="password" placeholder="${mh.api_pwd_configurada ? '•••••••• (guardada)' : 'Entregada por el equipo de Facturación Electrónica'}"></div>
       </div>
       <div class="mt"><button class="btn btn-secundario" id="btn-probar-mh">Probar conexión</button> <button class="btn btn-verde" id="btn-guardar-mh">Guardar y activar ambiente</button></div>
     </div>

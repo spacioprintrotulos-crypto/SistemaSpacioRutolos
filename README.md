@@ -94,7 +94,7 @@ O desde el dashboard de Cloudflare Pages, conectando el repositorio de GitHub
 1. Inicie sesión con `admin` / `fac2026`.
 2. En **Configuración**: cargue los datos del emisor (NIT, NRC, actividad CAT-019,
    dirección, códigos de establecimiento y punto de venta).
-3. Configure cada perfil de **ambiente** (Pruebas `00` y Producción `01`) con sus propias credenciales MH, ficha del emisor y certificado. El botón **Probar conexión** valida las credenciales sin guardarlas ni emitir un DTE.
+3. Configure cada perfil de **ambiente** (Pruebas `00` y Producción `01`) con sus propias credenciales de **aplicación/API** MH, ficha del emisor y certificado. No use la clave de acceso al portal web del MH: el equipo de Facturación Electrónica entrega una clave API independiente. El botón **Probar conexión** valida las credenciales sin guardarlas ni emitir un DTE.
 4. Use **Guardar y activar ambiente** solo después de una prueba exitosa. La emisión siempre usa el perfil activo.
 5. Si desea, ajuste los **correlativos** iniciales por tipo de DTE.
 

@@ -480,44 +480,67 @@
 
   // Descarga directa a PDF usando html2pdf o iframe nativo
   function descargarDTEPDFDirecto(target, fileName) {
+    let dteObj = null;
     let el = null;
     let modalId = null;
 
     if (typeof target === 'string') {
       modalId = target;
+      if (root.__dte_modal_cache && root.__dte_modal_cache[target]) {
+        dteObj = root.__dte_modal_cache[target];
+      }
       const container = document.getElementById(`${target}-container`) || document.getElementById(target);
       if (container) el = container.querySelector('.dte-document') || container;
     } else if (target && target.nodeType) {
       el = target.querySelector('.dte-document') || target;
     }
 
-    if (!el) return;
-
     const cleanFileName = fileName || 'Comprobante_DTE';
+
+    // Si tenemos el objeto DTE directo, usamos el generador aislado staging (100% libre de interferencias del DOM)
+    if (dteObj) {
+      return descargarDTECompleto(dteObj, {}, cleanFileName);
+    }
+
+    if (!el) return;
 
     if (typeof root.html2pdf === 'function') {
       if (typeof root.toast === 'function') root.toast('Generando PDF...', 'info');
 
+      // Clonamos el elemento en un staging aislado para evitar que transforms/scroll del modal afecten a html2canvas
+      const staging = document.createElement('div');
+      staging.style.position = 'fixed';
+      staging.style.top = '0';
+      staging.style.left = '0';
+      staging.style.width = '740px';
+      staging.style.zIndex = '-99999';
+      staging.style.background = '#ffffff';
+      staging.style.margin = '0';
+      staging.style.padding = '0';
+      staging.appendChild(el.cloneNode(true));
+      document.body.appendChild(staging);
+
+      const cloneDoc = staging.querySelector('.dte-document') || staging;
+
       const opt = {
-        margin: [5, 5, 5, 5],
+        margin: [6, 6, 6, 6],
         filename: `${cleanFileName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
           scale: 2,
           useCORS: true,
-          letterRendering: true,
-          scrollY: 0,
-          scrollX: 0,
-          windowWidth: 760
+          backgroundColor: '#ffffff'
         },
         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
 
-      root.html2pdf().set(opt).from(el).save()
+      root.html2pdf().set(opt).from(cloneDoc).save()
         .then(() => {
+          staging.remove();
           if (typeof root.toast === 'function') root.toast('PDF descargado con éxito', 'success');
         })
         .catch((err) => {
+          staging.remove();
           console.warn('Error en html2pdf, recurriendo a diálogo de impresión:', err);
           if (modalId) imprimirDTEById(modalId);
         });
@@ -533,19 +556,48 @@
     const correlativo = dte.identificacion?.numeroControl || dte.identificacion?.codigoGeneracion || 'DTE';
     const finalFileName = fileName || `${getNombreTipoDTE(tipoDte).replace(/\s+/g, '_')}_${correlativo}_${clienteLimpio}`;
 
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '0';
-    tempDiv.style.width = '740px';
-    tempDiv.innerHTML = renderDteHtml(dte, opciones);
-    document.body.appendChild(tempDiv);
+    if (typeof root.html2pdf === 'function') {
+      if (typeof root.toast === 'function') root.toast('Generando PDF...', 'info');
 
-    descargarDTEPDFDirecto(tempDiv, finalFileName);
+      const staging = document.createElement('div');
+      staging.style.position = 'fixed';
+      staging.style.top = '0';
+      staging.style.left = '0';
+      staging.style.width = '740px';
+      staging.style.zIndex = '-99999';
+      staging.style.background = '#ffffff';
+      staging.style.margin = '0';
+      staging.style.padding = '0';
+      staging.innerHTML = renderDteHtml(dte, opciones);
+      document.body.appendChild(staging);
 
-    setTimeout(() => {
-      tempDiv.remove();
-    }, 4000);
+      const cloneDoc = staging.querySelector('.dte-document') || staging;
+
+      const opt = {
+        margin: [6, 6, 6, 6],
+        filename: `${finalFileName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+      };
+
+      root.html2pdf().set(opt).from(cloneDoc).save()
+        .then(() => {
+          staging.remove();
+          if (typeof root.toast === 'function') root.toast('PDF descargado con éxito', 'success');
+        })
+        .catch((err) => {
+          staging.remove();
+          console.warn('Error en html2pdf:', err);
+          previsualizarDTE(dte, opciones);
+        });
+    } else {
+      previsualizarDTE(dte, opciones);
+    }
   }
 
   function descargarDTEJSONDirecto(target, fileName) {

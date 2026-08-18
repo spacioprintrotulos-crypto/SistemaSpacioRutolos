@@ -716,19 +716,23 @@ window.descargarPDFResultado = (fileName) => {
   const r = state.ultimoResultado;
   if (!r || !r.dte) return toast('No hay DTE disponible', 'error');
   if (typeof DTEVisual !== 'undefined') {
-    DTEVisual.previsualizar(r.dte, { sello: r.selloRecibido });
+    DTEVisual.descargarDTE(r.dte, { sello: r.selloRecibido }, fileName);
   }
 };
 
 window.descargarJSONResultado = (fileName) => {
   const r = state.ultimoResultado;
   if (!r || !r.dte) return;
-  const blob = new Blob([JSON.stringify(r.dte, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${fileName || 'DTE'}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  if (typeof DTEVisual !== 'undefined') {
+    DTEVisual.descargarJSON(r.dte, fileName);
+  } else {
+    const blob = new Blob([JSON.stringify(r.dte, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${fileName || 'DTE'}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 };
 
 window.descargarJSON = () => {

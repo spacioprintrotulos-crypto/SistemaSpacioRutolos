@@ -372,6 +372,9 @@
     </div>`;
   }
 
+  // Cache global de DTEs para modales
+  root.__dte_modal_cache = root.__dte_modal_cache || {};
+
   // Abre la ventana de previsualización e impresión
   function previsualizarDTE(dte, opciones = {}) {
     const clienteLimpio = sanitizarNombreArchivo(dte.receptor?.nombre || 'CLIENTE');
@@ -383,6 +386,8 @@
 
     // Crear modal interactivo
     const modalId = 'modal-dte-viewer-' + Date.now();
+    root.__dte_modal_cache[modalId] = dte;
+
     const modalHtml = `
       <div class="modal-backdrop dte-viewer-backdrop" id="${modalId}" onclick="if(event.target===this)this.remove()">
         <div class="modal dte-viewer-modal">
@@ -392,9 +397,9 @@
               <span class="badge-estado ${dte.estado || 'PROCESADO'}">${dte.estado || 'PROCESADO'}</span>
             </div>
             <div class="dte-viewer-actions">
-              <button class="btn btn-verde" onclick="imprimirDTEById('${modalId}')">🖨️ Imprimir / Guardar PDF</button>
-              <button class="btn btn-secundario" onclick="descargarDTEPDFDirecto('${modalId}', '${fileName}')">⬇️ Descargar PDF</button>
-              <button class="btn btn-ghost" onclick="descargarDTEJSONDirecto(${JSON.stringify(JSON.stringify(dte)).replace(/"/g, '&quot;')}, '${fileName}')">{ } JSON</button>
+              <button class="btn btn-verde" onclick="DTEVisual.imprimir('${modalId}')">🖨️ Imprimir / Guardar PDF</button>
+              <button class="btn btn-secundario" onclick="DTEVisual.descargarPDF('${modalId}', '${fileName}')">⬇️ Descargar PDF</button>
+              <button class="btn btn-ghost" onclick="DTEVisual.descargarJSON('${modalId}', '${fileName}')">{ } JSON</button>
               <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
             </div>
           </div>
@@ -407,73 +412,135 @@
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
 
-  // Imprime directamente el DTE en formato carta
+  // Imprime directamente el DTE usando un iframe oculto (sin bloqueos de ventanas emergentes)
   function imprimirDTEById(modalId) {
-    const container = document.getElementById(`${modalId}-container`);
+    const container = document.getElementById(`${modalId}-container`) || document.getElementById(modalId);
     if (!container) return window.print();
 
-    const printWin = window.open('', '_blank', 'width=900,height=800');
-    if (!printWin) {
-      toast('Permita ventanas emergentes para imprimir', 'error');
-      return;
+    const docEl = container.querySelector('.dte-document') || container;
+
+    let iframe = document.getElementById('dte-print-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'dte-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
     }
 
     const cssContent = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
       .map(el => el.outerHTML)
       .join('\n');
 
-    printWin.document.write(`
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Impresión DTE</title>
+        <meta charset="utf-8">
+        <title>Comprobante DTE</title>
         ${cssContent}
         <style>
-          body { background: #fff !important; margin: 0; padding: 10mm; }
-          .dte-document { box-shadow: none !important; border: 1px solid #000 !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }
-          @page { size: letter; margin: 8mm; }
+          @page { size: letter portrait; margin: 6mm; }
+          body { background: #ffffff !important; margin: 0 !important; padding: 0 !important; }
+          .dte-document { box-shadow: none !important; border: 1.5px solid #000 !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }
         </style>
       </head>
       <body>
-        ${container.innerHTML}
-        <script>
-          window.onload = function() {
-            setTimeout(function() { window.print(); window.close(); }, 300);
-          };
-        </script>
+        ${docEl.outerHTML}
       </body>
       </html>
     `);
-    printWin.document.close();
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 350);
   }
 
-  // Descarga directa a PDF usando html2pdf o render de impresión
-  function descargarDTEPDFDirecto(modalId, fileName) {
-    const el = document.querySelector(`#${modalId}-container .dte-document`);
+  // Descarga directa a PDF usando html2pdf o iframe nativo
+  function descargarDTEPDFDirecto(target, fileName) {
+    let el = null;
+    let modalId = null;
+
+    if (typeof target === 'string') {
+      modalId = target;
+      const container = document.getElementById(`${target}-container`) || document.getElementById(target);
+      if (container) el = container.querySelector('.dte-document') || container;
+    } else if (target && target.nodeType) {
+      el = target.querySelector('.dte-document') || target;
+    }
+
     if (!el) return;
 
+    const cleanFileName = fileName || 'Comprobante_DTE';
+
     if (typeof root.html2pdf === 'function') {
+      if (typeof root.toast === 'function') root.toast('Generando PDF...', 'info');
+
       const opt = {
         margin: [5, 5, 5, 5],
-        filename: `${fileName}.pdf`,
+        filename: `${cleanFileName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
-      root.html2pdf().set(opt).from(el).save();
+
+      root.html2pdf().set(opt).from(el).save()
+        .then(() => {
+          if (typeof root.toast === 'function') root.toast('PDF descargado con éxito', 'success');
+        })
+        .catch((err) => {
+          console.warn('Error en html2pdf, recurriendo a diálogo de impresión:', err);
+          if (modalId) imprimirDTEById(modalId);
+        });
     } else {
-      // Fallback nativo: abre ventana de impresión
-      imprimirDTEById(modalId);
+      if (modalId) imprimirDTEById(modalId);
     }
   }
 
-  function descargarDTEJSONDirecto(dteObj, fileName) {
-    const blob = new Blob([typeof dteObj === 'string' ? dteObj : JSON.stringify(dteObj, null, 2)], { type: 'application/json' });
+  // Descarga directa de PDF a partir del objeto DTE (sin abrir modal)
+  function descargarDTECompleto(dte, opciones = {}, fileName = '') {
+    const clienteLimpio = sanitizarNombreArchivo(dte.receptor?.nombre || 'CLIENTE');
+    const tipoDte = dte.identificacion?.tipoDte || '01';
+    const correlativo = dte.identificacion?.numeroControl || dte.identificacion?.codigoGeneracion || 'DTE';
+    const finalFileName = fileName || `${getNombreTipoDTE(tipoDte).replace(/\s+/g, '_')}_${correlativo}_${clienteLimpio}`;
+
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '0';
+    tempDiv.style.width = '820px';
+    tempDiv.innerHTML = renderDteHtml(dte, opciones);
+    document.body.appendChild(tempDiv);
+
+    descargarDTEPDFDirecto(tempDiv, finalFileName);
+
+    setTimeout(() => {
+      tempDiv.remove();
+    }, 4000);
+  }
+
+  function descargarDTEJSONDirecto(target, fileName) {
+    let dteObj = target;
+    if (typeof target === 'string' && root.__dte_modal_cache && root.__dte_modal_cache[target]) {
+      dteObj = root.__dte_modal_cache[target];
+    }
+    const cleanFileName = fileName || 'Comprobante_DTE';
+    const jsonStr = typeof dteObj === 'string' ? dteObj : JSON.stringify(dteObj, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${fileName}.json`;
+    a.download = `${cleanFileName}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
+    if (typeof root.toast === 'function') root.toast('JSON descargado con éxito', 'success');
   }
 
   root.DTEVisual = {
@@ -482,6 +549,7 @@
     previsualizar: previsualizarDTE,
     imprimir: imprimirDTEById,
     descargarPDF: descargarDTEPDFDirecto,
+    descargarDTE: descargarDTECompleto,
     descargarJSON: descargarDTEJSONDirecto,
     sanitizarNombre: sanitizarNombreArchivo,
     getNombreTipo: getNombreTipoDTE,

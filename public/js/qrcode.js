@@ -210,7 +210,7 @@
   };
 
   function QRCode(typeNumber, errorCorrectLevel) {
-    this.typeNumber = typeNumber || 4;
+    this.typeNumber = (typeof typeNumber === 'number' && typeNumber > 0) ? typeNumber : 0;
     this.errorCorrectLevel = errorCorrectLevel !== undefined ? errorCorrectLevel : QRErrorCorrectLevel.M;
     this.modules = null;
     this.moduleCount = 0;
@@ -352,26 +352,24 @@
     },
     createSvg: function(options) {
       options = options || {};
-      const size = options.size || 140;
-      const margin = options.margin !== undefined ? options.margin : 2;
+      const size = options.size || 120;
+      const margin = options.margin !== undefined ? options.margin : 4;
       const fgColor = options.fgColor || '#000000';
       const bgColor = options.bgColor || '#ffffff';
       const count = this.getModuleCount();
       const totalCount = count + margin * 2;
-      const cellSize = size / totalCount;
 
-      let rects = '';
+      let path = '';
       for (let r = 0; r < count; r++) {
         for (let c = 0; c < count; c++) {
           if (this.isDark(r, c)) {
-            const x = ((c + margin) * cellSize).toFixed(2);
-            const y = ((r + margin) * cellSize).toFixed(2);
-            const w = cellSize.toFixed(2);
-            rects += `<rect x="${x}" y="${y}" width="${w}" height="${w}" fill="${fgColor}"/>`;
+            const x = c + margin;
+            const y = r + margin;
+            path += `M${x},${y}h1v1h-1z `;
           }
         }
       }
-      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><rect width="${size}" height="${size}" fill="${bgColor}"/>${rects}</svg>`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalCount} ${totalCount}" width="${size}" height="${size}" shape-rendering="crispEdges"><rect width="${totalCount}" height="${totalCount}" fill="${bgColor}"/><path d="${path}" fill="${fgColor}"/></svg>`;
     }
   };
 
@@ -436,12 +434,12 @@
   };
 
   // Exportar helper fácil: generarQrSvg(texto, size)
-  root.generarQrSvg = function(text, size = 130) {
+  root.generarQrSvg = function(text, size = 120) {
     try {
       const qr = new QRCode(0, QRErrorCorrectLevel.M);
       qr.addData(text);
       qr.make();
-      return qr.createSvg({ size: size, margin: 1 });
+      return qr.createSvg({ size: size, margin: 4 });
     } catch (e) {
       console.warn('Error generando QR SVG:', e);
       return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="#eee"/><text x="50%" y="50%" text-anchor="middle" font-size="10" fill="#666">QR</text></svg>`;

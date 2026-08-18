@@ -35,6 +35,7 @@ const ICONS = {
   clientes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   dtes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
   config: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  iva: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
 };
 
 // ---------- Router ----------
@@ -54,6 +55,7 @@ function route() {
     case 'clientes': renderClientes(app); break;
     case 'dtes': renderDTEs(app, rest[0]); break;
     case 'configuracion': renderConfiguracion(app); break;
+    case 'iva': renderEnConstruccion(app, 'Sección de IVA'); break;
     default: renderMenu(app);
   }
 }
@@ -145,6 +147,7 @@ function renderMenu(app) {
     { ruta: '#/nota', cls: 'blue', t: 'Nota de Crédito', s: 'Anula o modifica una Factura o CCF emitida.', icon: 'nota' },
     { ruta: '#/clientes', cls: 'orange', t: 'Clientes', s: 'Directorio de receptores de tus DTEs.', icon: 'clientes' },
     { ruta: '#/dtes', cls: 'slate', t: 'DTEs Emitidos', s: 'Historial, consulta y anulación de documentos.', icon: 'dtes' },
+    { ruta: '#/iva', cls: 'teal', t: 'IVA', s: 'En Construcción', icon: 'iva' },
     { ruta: '#/configuracion', cls: 'pink', t: 'Configuración', s: 'Datos del emisor, credenciales MH y firma.', icon: 'config' },
   ];
   app.innerHTML = appShell(`
@@ -160,6 +163,29 @@ function renderMenu(app) {
             <div class="card-sub">${t.s}</div>
           </div>
         </a>`).join('')}
+    </div>`);
+}
+
+// ---------- VISTA: En Construcción ----------
+function renderEnConstruccion(app, titulo = 'Sección de IVA') {
+  app.innerHTML = appShell(`
+    <div class="page-head">
+      <div>
+        <div class="crumb"><a href="#/" style="color:var(--azul);text-decoration:none">Inicio</a> / ${esc(titulo)}</div>
+        <h2>${esc(titulo)}</h2>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;padding:50px 20px">
+      <div style="width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:linear-gradient(135deg, #0d9488, #2dd4bf);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 10px 25px rgba(13,148,136,.25)">
+        ${ICONS.iva}
+      </div>
+      <h3 style="justify-content:center;font-size:20px;margin-bottom:8px">Módulo en Construcción</h3>
+      <p style="color:var(--gris);max-width:460px;margin:0 auto 24px;font-size:14px;line-height:1.5">
+        Esta sección está en desarrollo. Próximamente podrás generar los Libros de IVA (Compras, Ventas a Contribuyentes y Consumidor Final) y reportes de control fiscal.
+      </p>
+      <div>
+        <a href="#/" class="btn btn-primary" style="display:inline-block;text-decoration:none">Volver al inicio</a>
+      </div>
     </div>`);
 }
 

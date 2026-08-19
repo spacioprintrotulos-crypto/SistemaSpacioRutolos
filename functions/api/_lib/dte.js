@@ -202,6 +202,10 @@ export function buildFactura({ emisor, ambiente, correlativo, receptor, items, c
     numPagoElectronico: null,
   };
 
+  const rawCodAct = receptor.cod_actividad ? String(receptor.cod_actividad).trim() : '';
+  const validCodAct = (/^\d{5,6}$/.test(rawCodAct)) ? rawCodAct : null;
+  const validDescAct = validCodAct ? (receptor.desc_actividad || null) : null;
+
   const dte = {
     identificacion,
     documentoRelacionado: null,
@@ -211,8 +215,8 @@ export function buildFactura({ emisor, ambiente, correlativo, receptor, items, c
       numDocumento: digits(receptor.num_documento) || null,
       nrc: null,
       nombre: receptor.nombre,
-      codActividad: receptor.cod_actividad || null,
-      descActividad: receptor.desc_actividad || null,
+      codActividad: validCodAct,
+      descActividad: validDescAct,
       direccion: buildDireccion(receptor),
       telefono: receptor.telefono || null,
       correo: receptor.correo || null,

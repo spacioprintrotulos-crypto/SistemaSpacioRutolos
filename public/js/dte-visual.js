@@ -413,6 +413,8 @@
             <div class="dte-viewer-actions">
               <button class="btn btn-verde" onclick="DTEVisual.imprimir('${modalId}')">🖨️ Imprimir / Guardar PDF</button>
               <button class="btn btn-secundario" onclick="DTEVisual.descargarPDF('${modalId}', '${fileName}')">⬇️ Descargar PDF</button>
+              <button class="btn btn-azul" onclick="DTEVisual.enviarEmailModal('${modalId}')">✉️ Email</button>
+              <button class="btn btn-whatsapp" onclick="DTEVisual.enviarWhatsAppModal('${modalId}')">💬 WhatsApp</button>
               <button class="btn btn-ghost" onclick="DTEVisual.descargarJSON('${modalId}', '${fileName}')">{ } JSON</button>
               <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
             </div>
@@ -616,6 +618,218 @@
     if (typeof root.toast === 'function') root.toast('JSON descargado con éxito', 'success');
   }
 
+  // ---------- ENVÍO POR CORREO ELECTRÓNICO (EMAIL) ----------
+  function enviarEmailDTE(dte, opciones = {}) {
+    const ident = dte.identificacion || {};
+    const receptor = dte.receptor || {};
+    const resumen = dte.resumen || {};
+    const tipo = ident.tipoDte || '01';
+    const tipoNom = getNombreTipoDTE(tipo);
+    const numControl = ident.numeroControl || 'DTE';
+    const codGen = ident.codigoGeneracion || '';
+    const fechaEmi = ident.fecEmi || new Date().toISOString().slice(0, 10);
+    const fechaEmiFmt = (function(f){
+      if(!f) return '';
+      const p = String(f).split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : f;
+    })(fechaEmi);
+    const totalPagar = Number(resumen.totalPagar !== undefined ? resumen.totalPagar : (resumen.montoTotalOperacion || 0)).toFixed(2);
+    const receptorNombre = receptor.nombre || 'CLIENTE';
+    const receptorDoc = receptor.nrc || receptor.nit || receptor.numDocumento || '';
+    const receptorSaludo = receptorDoc ? `${receptorDoc} ${receptorNombre}` : receptorNombre;
+    const correoDestino = opciones.destinatario || 'spacioprintrotulos@gmail.com';
+    const asuntoDef = `Factura Electrónica DTE ${tipoNom} Spacio Rotulos`;
+
+    const clienteLimpio = sanitizarNombreArchivo(receptorNombre);
+    const baseFileName = `${tipoNom.replace(/\s+/g, '_')}_${numControl}_${clienteLimpio}`;
+
+    const modalId = 'modal-email-dte-' + Date.now();
+    const modalHtml = `
+      <div class="modal-backdrop" id="${modalId}" onclick="if(event.target===this)this.remove()">
+        <div class="modal" style="max-width:680px;padding:24px">
+          <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="margin:0;display:flex;align-items:center;gap:8px">✉️ Enviar Comprobante por Correo</h3>
+            <button class="btn btn-ghost" style="padding:4px 8px" onclick="document.getElementById('${modalId}').remove()">✕</button>
+          </div>
+
+          <div class="form-field">
+            <label>Para (Destinatario):</label>
+            <div class="flex" style="gap:8px">
+              <input id="${modalId}-destinatario" value="${esc(correoDestino)}" style="flex:1;font-weight:700">
+              ${receptor.correo && receptor.correo !== '-' && receptor.correo !== correoDestino ? `
+                <button class="btn btn-secundario btn-xs" type="button" onclick="document.getElementById('${modalId}-destinatario').value='${esc(receptor.correo)}'">Usar cliente (${esc(receptor.correo)})</button>
+              ` : ''}
+            </div>
+            <span class="small text-gris" style="margin-top:4px;display:block">Por defecto se envía al correo de pruebas: <b>spacioprintrotulos@gmail.com</b></span>
+          </div>
+
+          <div class="form-field">
+            <label>Asunto:</label>
+            <input id="${modalId}-asunto" value="${esc(asuntoDef)}">
+          </div>
+
+          <div class="form-field">
+            <label>Archivos Adjuntos Oficiales:</label>
+            <div class="flex" style="gap:10px;margin-top:4px">
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:6px;color:#1e40af">
+                📄 <b>${esc(baseFileName)}.pdf</b>
+              </div>
+              <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:6px;color:#334155">
+                { } <b>${esc(baseFileName)}.json</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista Previa del Correo Estilizado -->
+          <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:16px">
+            <div style="text-align:center;font-size:11.5px;color:#64748b;margin-bottom:8px">Vista previa del correo:</div>
+            <div style="text-align:center;margin-bottom:10px">
+              <img src="/img/logo_spacio.png" alt="Spacio Rotulos" style="max-height:42px;object-fit:contain">
+            </div>
+            <div style="text-align:center;margin-bottom:12px">
+              <span style="display:inline-block;width:48px;height:48px;line-height:48px;border-radius:50%;background:#eff6ff;border:2px solid #0d47c9;font-size:24px">📄</span>
+            </div>
+            <div style="font-size:13px;line-height:1.45;color:#1e293b;margin-bottom:12px">
+              <p style="margin:0 0 6px 0"><b>Estimado(a) ${esc(receptorSaludo)},</b></p>
+              <p style="margin:0 0 10px 0">Spacio Rotulos. -1201-260869-101-8- ha emitido un Documento Tributario Electrónico -DTE- con la siguiente información:</p>
+            </div>
+            <div style="background:#fffdfa;border:2px solid #f59e0b;border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:10px">
+              <div><b>Código de Generación:</b> <span style="font-family:monospace">${esc(codGen)}</span></div>
+              <div><b>Fecha de emisión:</b> ${esc(fechaEmiFmt)}</div>
+              <div><b>Tipo de Comprobante:</b> <b style="color:#0d47c9">${esc(tipoNom)}</b></div>
+              <div><b>Monto Total:</b> <b style="color:#16a34a">USD $${totalPagar}</b></div>
+            </div>
+            <div style="font-size:12px;color:#475569;margin-bottom:10px">
+              Adjunto podrá descargar un archivo PDF y JSON el cual está firmado electrónicamente y autorizado por el Ministerio de Hacienda (MH).
+            </div>
+            <hr style="border:none;border-top:1px solid #0d47c9;margin:10px 0">
+            <div style="text-align:center;font-size:11px;color:#94a3b8">© 2026 Spacio Rotulos. - Todos los derechos reservados -</div>
+          </div>
+
+          <div class="modal-actions" style="justify-content:space-between">
+            <div class="flex" style="gap:8px">
+              <button class="btn btn-azul" id="${modalId}-btn-enviar">✉️ Enviar Correo</button>
+              <button class="btn btn-secundario" id="${modalId}-btn-mailto">📨 Abrir en App de Correo</button>
+            </div>
+            <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modalEl = document.getElementById(modalId);
+    const btnEnviar = document.getElementById(`${modalId}-btn-enviar`);
+    const btnMailto = document.getElementById(`${modalId}-btn-mailto`);
+
+    btnEnviar.addEventListener('click', async () => {
+      const dest = document.getElementById(`${modalId}-destinatario`).value.trim();
+      const asu = document.getElementById(`${modalId}-asunto`).value.trim();
+      if (!dest) return root.toast ? root.toast('Ingrese un correo de destino', 'error') : alert('Ingrese un correo');
+
+      btnEnviar.disabled = true;
+      btnEnviar.textContent = 'Enviando...';
+
+      try {
+        if (root.API && typeof root.API.enviarEmailDTE === 'function') {
+          const resp = await root.API.enviarEmailDTE({
+            dteObj: dte,
+            destinatario: dest,
+            asunto: asu,
+          });
+          if (root.toast) root.toast(resp.mensaje || `Correo enviado con éxito a ${dest}`, 'success');
+          modalEl.remove();
+        } else {
+          if (root.toast) root.toast(`Correo preparado para ${dest}`, 'success');
+          modalEl.remove();
+        }
+      } catch (err) {
+        if (root.toast) root.toast(err.error || 'Error al enviar correo', 'error');
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = '✉️ Enviar Correo';
+      }
+    });
+
+    btnMailto.addEventListener('click', () => {
+      const dest = document.getElementById(`${modalId}-destinatario`).value.trim();
+      const asu = document.getElementById(`${modalId}-asunto`).value.trim();
+      const bodyMailto = `Estimado(a) ${receptorSaludo},\n\nSpacio Rotulos. -1201-260869-101-8- ha emitido su Documento Tributario Electrónico (DTE).\n\nCódigo de Generación: ${codGen}\nFecha de emisión: ${fechaEmiFmt}\nTipo de Comprobante: ${tipoNom}\nMonto Total: USD $${totalPagar}\n\nAdjuntamos su comprobante oficial en PDF y JSON autorizado por el Ministerio de Hacienda (MH).\n\n© 2026 Spacio Rotulos.`;
+      const mailtoUrl = `mailto:${encodeURIComponent(dest)}?subject=${encodeURIComponent(asu)}&body=${encodeURIComponent(bodyMailto)}`;
+      window.open(mailtoUrl, '_blank');
+      descargarDTECompleto(dte, opciones, baseFileName);
+      descargarDTEJSONDirecto(dte, baseFileName);
+      if (root.toast) root.toast('Descargando archivos PDF y JSON para adjuntar al correo', 'info');
+    });
+  }
+
+  // ---------- ENVÍO POR WHATSAPP (+503 7255 4916) ----------
+  function enviarWhatsAppDTE(dte, opciones = {}) {
+    const ident = dte.identificacion || {};
+    const receptor = dte.receptor || {};
+    const resumen = dte.resumen || {};
+    const tipo = ident.tipoDte || '01';
+    const tipoNom = getNombreTipoDTE(tipo);
+    const numControl = ident.numeroControl || 'DTE';
+    const codGen = ident.codigoGeneracion || '';
+    const fechaEmi = ident.fecEmi || new Date().toISOString().slice(0, 10);
+    const totalPagar = Number(resumen.totalPagar !== undefined ? resumen.totalPagar : (resumen.montoTotalOperacion || 0)).toFixed(2);
+    const receptorNombre = receptor.nombre || 'CLIENTE';
+    const ambiente = ident.ambiente || '00';
+
+    const clienteLimpio = sanitizarNombreArchivo(receptorNombre);
+    const baseFileName = `${tipoNom.replace(/\s+/g, '_')}_${numControl}_${clienteLimpio}`;
+
+    const numWhatsApp = '50372554916'; // +503 7255 4916
+    const urlConsulta = `https://admin.factura.gob.sv/consultaPublica?ambiente=${ambiente}&codGen=${codGen}&fechaEmi=${fechaEmi}`;
+
+    const mensajeWA = 
+`📄 *DOCUMENTO TRIBUTARIO ELECTRÓNICO (DTE)*
+*Emisor:* Spacio Rotulos (NIT: 1201-260869-101-8)
+
+Estimado(a) *${receptorNombre}*:
+Se ha generado su Documento Tributario Electrónico con la siguiente información:
+
+🔹 *Tipo de Comprobante:* ${tipoNom}
+🔹 *N° de Control:* ${numControl}
+🔹 *Código de Generación:* ${codGen}
+🔹 *Fecha de Emisión:* ${fechaEmi}
+🔹 *Monto Total:* USD $${totalPagar}
+
+✅ *Documento autorizado por el Ministerio de Hacienda (MH).*
+🔍 *Consulta Pública Oficial:*
+${urlConsulta}
+
+📎 _Adjuntamos a continuación su Comprobante Oficial en formato PDF y archivo JSON._
+
+© 2026 Spacio Rotulos. - Todos los derechos reservados -`;
+
+    // 1. Descargamos automáticamente el PDF y JSON para que estén listos para adjuntar
+    descargarDTECompleto(dte, opciones, baseFileName);
+    setTimeout(() => {
+      descargarDTEJSONDirecto(dte, baseFileName);
+    }, 800);
+
+    if (root.toast) {
+      root.toast('Abriendo WhatsApp y preparando archivos PDF/JSON...', 'success');
+    }
+
+    // 2. Abrimos la URL de WhatsApp
+    const waUrl = `https://api.whatsapp.com/send?phone=${numWhatsApp}&text=${encodeURIComponent(mensajeWA)}`;
+    window.open(waUrl, '_blank');
+  }
+
+  function enviarEmailPorModalId(modalId) {
+    const dte = root.__dte_modal_cache && root.__dte_modal_cache[modalId];
+    if (dte) enviarEmailDTE(dte);
+  }
+
+  function enviarWhatsAppPorModalId(modalId) {
+    const dte = root.__dte_modal_cache && root.__dte_modal_cache[modalId];
+    if (dte) enviarWhatsAppDTE(dte);
+  }
+
   root.DTEVisual = {
     renderHtml: renderDteHtml,
     generarHTML: renderDteHtml,
@@ -624,6 +838,10 @@
     descargarPDF: descargarDTEPDFDirecto,
     descargarDTE: descargarDTECompleto,
     descargarJSON: descargarDTEJSONDirecto,
+    enviarEmail: enviarEmailDTE,
+    enviarWhatsApp: enviarWhatsAppDTE,
+    enviarEmailModal: enviarEmailPorModalId,
+    enviarWhatsAppModal: enviarWhatsAppPorModalId,
     sanitizarNombre: sanitizarNombreArchivo,
     getNombreTipo: getNombreTipoDTE,
   };

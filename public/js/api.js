@@ -49,6 +49,7 @@ const API = {
   dte(id) { return this.get(`/api/dtes/${id}`); },
   emitir(body) { return this.post('/api/dtes/emitir', body); },
   anular(body) { return this.post('/api/dtes/anular', body); },
+  enviarEmailDTE(body) { return this.post('/api/dtes/enviar-email', body); },
 
   // ---- Configuración ----
   configuracion(ambiente) { return this.get('/api/configuracion', { ambiente }); },

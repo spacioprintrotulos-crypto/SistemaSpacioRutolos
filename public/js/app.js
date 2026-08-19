@@ -692,9 +692,11 @@ function mostrarResultado(r) {
           <div class="resumen-row total"><span>Total a Pagar</span><span>${fmtMoneda(r.total)}</span></div>
         </div>
         <div class="modal-actions" style="justify-content:space-between">
-          <div class="flex" style="gap:8px">
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
             <button class="btn btn-verde" onclick="verComprobanteUltimo()">📄 Ver Comprobante / Imprimir</button>
-            <button class="btn btn-secundario" onclick="descargarPDFResultado('${fileName}')">⬇️ Descargar PDF</button>
+            <button class="btn btn-azul" onclick="enviarEmailUltimo()">✉️ Enviar por Correo</button>
+            <button class="btn btn-whatsapp" onclick="enviarWhatsAppUltimo()">💬 Enviar WhatsApp</button>
+            <button class="btn btn-secundario" onclick="descargarPDFResultado('${fileName}')">⬇️ PDF</button>
             <button class="btn btn-ghost" onclick="descargarJSONResultado('${fileName}')">{ } JSON</button>
           </div>
           <div class="flex" style="gap:8px">
@@ -711,6 +713,22 @@ window.verComprobanteUltimo = () => {
   if (!r || !r.dte) return toast('No hay DTE disponible', 'error');
   if (typeof DTEVisual !== 'undefined') {
     DTEVisual.previsualizar(r.dte, { sello: r.selloRecibido });
+  }
+};
+
+window.enviarEmailUltimo = () => {
+  const r = state.ultimoResultado;
+  if (!r || !r.dte) return toast('No hay DTE disponible', 'error');
+  if (typeof DTEVisual !== 'undefined') {
+    DTEVisual.enviarEmail(r.dte, { sello: r.selloRecibido });
+  }
+};
+
+window.enviarWhatsAppUltimo = () => {
+  const r = state.ultimoResultado;
+  if (!r || !r.dte) return toast('No hay DTE disponible', 'error');
+  if (typeof DTEVisual !== 'undefined') {
+    DTEVisual.enviarWhatsApp(r.dte, { sello: r.selloRecibido });
   }
 };
 
@@ -959,15 +977,39 @@ window.verDTE = async (id) => {
           <h3 style="margin-bottom:8px">JSON del documento</h3>
           <pre class="json-view">${esc(JSON.stringify(dteObj, null, 2))}</pre>
           <div class="modal-actions" style="justify-content:space-between">
-            <div class="flex" style="gap:8px">
-              <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver Comprobante / Imprimir</button>
-              <button class="btn btn-secundario" onclick="descargarDTEJSON(${dte.id})">⬇️ Descargar JSON</button>
+            <div class="flex" style="gap:8px;flex-wrap:wrap">
+              <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver Comprobante</button>
+              <button class="btn btn-azul" onclick="enviarEmailDTEId(${dte.id})">✉️ Email</button>
+              <button class="btn btn-whatsapp" onclick="enviarWhatsAppDTEId(${dte.id})">💬 WhatsApp</button>
+              <button class="btn btn-secundario" onclick="descargarDTEJSON(${dte.id})">⬇️ JSON</button>
             </div>
             <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
           </div>
         </div>
       </div>`);
   } catch (e) { toast(e.error, 'error'); }
+};
+
+window.enviarEmailDTEId = async (id) => {
+  try {
+    const { dte } = await API.dte(id);
+    const dteObj = JSON.parse(dte.dte_json);
+    dteObj.estado = dte.estado;
+    if (typeof DTEVisual !== 'undefined') {
+      DTEVisual.enviarEmail(dteObj, { sello: dte.sello_recibido });
+    }
+  } catch (e) { toast(e.error || 'Error al preparar correo', 'error'); }
+};
+
+window.enviarWhatsAppDTEId = async (id) => {
+  try {
+    const { dte } = await API.dte(id);
+    const dteObj = JSON.parse(dte.dte_json);
+    dteObj.estado = dte.estado;
+    if (typeof DTEVisual !== 'undefined') {
+      DTEVisual.enviarWhatsApp(dteObj, { sello: dte.sello_recibido });
+    }
+  } catch (e) { toast(e.error || 'Error al preparar WhatsApp', 'error'); }
 };
 
 window.descargarDTEJSON = async (id) => {

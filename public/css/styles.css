@@ -223,6 +223,8 @@ input, select, textarea { font-family: inherit; }
 .btn-secundario { background: #eff6ff; color: var(--azul); border: 1px solid #dbeafe; }
 [data-theme="dark"] .btn-secundario { background: #1a253c; color: #60a5fa; border: 1px solid #2d3d60; }
 .btn-verde { background: linear-gradient(135deg, #16a34a, #4ade80); color: #fff; box-shadow: 0 10px 22px rgba(22,163,74,.28); }
+.btn-azul { background: linear-gradient(135deg, #0d47c9, #2563eb); color: #fff; box-shadow: 0 10px 22px rgba(13,71,201,.25); }
+.btn-whatsapp { background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; box-shadow: 0 10px 22px rgba(34,197,94,.28); }
 .btn-rojo { background: #fef2f2; color: var(--rojo); border: 1px solid #fecaca; }
 [data-theme="dark"] .btn-rojo { background: #331515; color: #fca5a5; border: 1px solid #5c1d1d; }
 .btn-ghost { background: transparent; color: var(--gris); border: 1px solid var(--borde); }

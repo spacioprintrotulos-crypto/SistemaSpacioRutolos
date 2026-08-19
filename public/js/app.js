@@ -90,7 +90,9 @@ function appShell(contenido) {
   <div class="app-shell">
     <header class="app-top">
       <div class="app-brand">
-        <span class="app-logo-badge" style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;background:rgba(255,255,255,.18);border-radius:12px;border:1px solid rgba(255,255,255,.35)">${ICONS.factura}</span>
+        <span class="app-logo-badge" style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;background:#ffffff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:4px">
+          <img src="img/logo.svg" alt="Logo" style="width:100%;height:100%;object-fit:contain;">
+        </span>
         <strong>SISTEMA FAC2026</strong>
       </div>
       <div class="app-userbox">
@@ -120,7 +122,9 @@ function renderLogin(app) {
     <div class="login-left">
       <div class="login-left-content">
         <div class="login-brand-mark">
-          <div class="login-logo-badge">${ICONS.factura}</div>
+          <div class="login-logo-badge" style="display:flex;align-items:center;justify-content:center;width:58px;height:58px;background:#ffffff;border-radius:16px;box-shadow:0 8px 22px rgba(0,0,0,.22);padding:6px">
+            <img src="img/logo.svg" alt="Logo" style="width:100%;height:100%;object-fit:contain;">
+          </div>
           <div class="login-brand-name">SISTEMA FAC2026</div>
         </div>
         <h1>Facturación Electrónica DTE</h1>

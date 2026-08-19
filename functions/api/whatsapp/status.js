@@ -17,13 +17,26 @@ export async function onRequestGet({ env }) {
 
   try {
     const statusResp = await fetch(`${baseUrl}/status`);
+    if (!statusResp.ok) {
+      const text = await statusResp.text();
+      return json({
+        ok: false,
+        configurado: true,
+        url: config.url,
+        connected: false,
+        error: `El Gateway en Railway respondió con error HTTP ${statusResp.status}. Asegúrese de que el despliegue en Railway esté activo ("Active" en verde). Detalle: ${text.slice(0, 120)}`,
+      });
+    }
+
     const statusData = await statusResp.json();
 
     let qrData = null;
     if (!statusData.connected) {
       try {
         const qrResp = await fetch(`${baseUrl}/qr`);
-        qrData = await qrResp.json();
+        if (qrResp.ok) {
+          qrData = await qrResp.json();
+        }
       } catch {}
     }
 

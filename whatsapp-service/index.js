@@ -301,8 +301,21 @@ app.get('/', (req, res) => {
   `);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const mainPort = Number(process.env.PORT) || 3000;
+app.listen(mainPort, '0.0.0.0', () => {
   console.log(`====================================================`);
-  console.log(`🟢 WhatsApp Gateway corriendo en puerto: ${PORT} (0.0.0.0)`);
+  console.log(`🟢 WhatsApp Gateway corriendo en puerto principal: ${mainPort} (0.0.0.0)`);
   console.log(`====================================================`);
+});
+
+// Puertos secundarios de respaldo para proxy de Railway
+[3000, 8080].forEach((p) => {
+  if (p !== mainPort) {
+    try {
+      const s = app.listen(p, '0.0.0.0', () => {
+        console.log(`🟢 WhatsApp Gateway escuchando en puerto de respaldo: ${p} (0.0.0.0)`);
+      });
+      s.on('error', () => {});
+    } catch {}
+  }
 });

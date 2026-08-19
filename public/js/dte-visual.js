@@ -602,6 +602,46 @@
     }
   }
 
+  // Genera el Base64 DataURI del PDF del DTE en memoria para adjuntarlo
+  async function generarPDFBase64(dte, opciones = {}) {
+    if (typeof root.html2pdf !== 'function') return null;
+
+    const staging = document.createElement('div');
+    staging.style.position = 'fixed';
+    staging.style.top = '0';
+    staging.style.left = '0';
+    staging.style.width = '740px';
+    staging.style.zIndex = '-99999';
+    staging.style.background = '#ffffff';
+    staging.style.margin = '0';
+    staging.style.padding = '0';
+    staging.innerHTML = renderDteHtml(dte, opciones);
+    document.body.appendChild(staging);
+
+    const cloneDoc = staging.querySelector('.dte-document') || staging;
+
+    const opt = {
+      margin: [6, 6, 6, 6],
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+    };
+
+    try {
+      const pdfDataUri = await root.html2pdf().set(opt).from(cloneDoc).outputPdf('datauristring');
+      staging.remove();
+      return pdfDataUri;
+    } catch (err) {
+      staging.remove();
+      console.warn('Error al generar PDF en base64:', err);
+      return null;
+    }
+  }
+
   function descargarDTEJSONDirecto(target, fileName) {
     let dteObj = target;
     if (typeof target === 'string' && root.__dte_modal_cache && root.__dte_modal_cache[target]) {
@@ -729,9 +769,10 @@
       if (!dest) return root.toast ? root.toast('Ingrese un correo de destino', 'error') : alert('Ingrese un correo');
 
       btnEnviar.disabled = true;
-      btnEnviar.textContent = 'Enviando...';
+      btnEnviar.textContent = 'Generando PDF y enviando...';
 
       try {
+        const pdfBase64 = await generarPDFBase64(dte, opciones);
         const apiClient = window.API || root.API || (typeof API !== 'undefined' ? API : null);
         let resp;
         if (apiClient && typeof apiClient.enviarEmailDTE === 'function') {
@@ -739,6 +780,7 @@
             dteObj: dte,
             destinatario: dest,
             asunto: asu,
+            pdfBase64: pdfBase64,
           });
         } else {
           const fetchResp = await fetch('/api/dtes/enviar-email', {
@@ -749,6 +791,7 @@
               dteObj: dte,
               destinatario: dest,
               asunto: asu,
+              pdfBase64: pdfBase64,
             })
           });
           resp = await fetchResp.json();
@@ -890,9 +933,10 @@ ${urlConsulta}
       }
 
       btnGateway.disabled = true;
-      btnGateway.textContent = 'Enviando WhatsApp...';
+      btnGateway.textContent = 'Generando PDF y enviando...';
 
       try {
+        const pdfBase64 = await generarPDFBase64(dte, opciones);
         const apiClient = window.API || root.API || (typeof API !== 'undefined' ? API : null);
         let resp;
         if (apiClient && typeof apiClient.enviarWhatsAppGateway === 'function') {
@@ -900,6 +944,7 @@ ${urlConsulta}
             dteObj: dte,
             phone: phoneInput,
             customMessage: msgInput,
+            pdfBase64: pdfBase64,
           });
         } else {
           const fetchResp = await fetch('/api/whatsapp/enviar', {
@@ -910,6 +955,7 @@ ${urlConsulta}
               dteObj: dte,
               phone: phoneInput,
               customMessage: msgInput,
+              pdfBase64: pdfBase64,
             })
           });
           resp = await fetchResp.json();

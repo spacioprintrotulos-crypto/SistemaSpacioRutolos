@@ -591,34 +591,6 @@
     }
   }
 
-  // Crea un contenedor aislado para renderizar el PDF de manera limpia, centrada y sin cortes
-  function crearStagingElement(dte, opciones) {
-    const staging = document.createElement('div');
-    staging.className = 'dte-pdf-render-staging';
-    staging.style.position = 'absolute';
-    staging.style.top = '0';
-    staging.style.left = '0';
-    staging.style.width = '750px';
-    staging.style.minWidth = '750px';
-    staging.style.maxWidth = '750px';
-    staging.style.background = '#ffffff';
-    staging.style.color = '#000000';
-    staging.style.zIndex = '-9999';
-    staging.style.opacity = '0';
-    staging.style.pointerEvents = 'none';
-    staging.innerHTML = renderDteHtml(dte, opciones);
-    document.body.appendChild(staging);
-
-    const docEl = staging.querySelector('.dte-document') || staging;
-    docEl.style.boxShadow = 'none';
-    docEl.style.border = '1.5px solid #000000';
-    docEl.style.margin = '0 auto';
-    docEl.style.width = '740px';
-    docEl.style.maxWidth = '740px';
-
-    return staging;
-  }
-
   // Descarga directa de PDF a partir del objeto DTE (sin abrir modal)
   function descargarDTECompleto(dte, opciones = {}, fileName = '') {
     const clienteLimpio = sanitizarNombreArchivo(dte.receptor?.nombre || 'CLIENTE');
@@ -629,8 +601,7 @@
     if (typeof root.html2pdf === 'function') {
       if (typeof root.toast === 'function') root.toast('Generando PDF...', 'info');
 
-      const staging = crearStagingElement(dte, opciones);
-      const cloneDoc = staging.querySelector('.dte-document') || staging;
+      const htmlContent = renderDteHtml(dte, opciones);
 
       const opt = {
         margin: [6, 6, 6, 6],
@@ -641,20 +612,16 @@
           useCORS: true,
           backgroundColor: '#ffffff',
           scrollY: 0,
-          scrollX: 0,
-          width: 750,
-          windowWidth: 750
+          scrollX: 0
         },
         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
 
-      root.html2pdf().set(opt).from(cloneDoc).save()
+      root.html2pdf().set(opt).from(htmlContent).save()
         .then(() => {
-          staging.remove();
           if (typeof root.toast === 'function') root.toast('PDF descargado con éxito', 'success');
         })
         .catch((err) => {
-          staging.remove();
           console.warn('Error en html2pdf:', err);
           previsualizarDTE(dte, opciones);
         });
@@ -667,8 +634,7 @@
   async function generarPDFBase64(dte, opciones = {}) {
     if (typeof root.html2pdf !== 'function') return null;
 
-    const staging = crearStagingElement(dte, opciones);
-    const cloneDoc = staging.querySelector('.dte-document') || staging;
+    const htmlContent = renderDteHtml(dte, opciones);
 
     const opt = {
       margin: [6, 6, 6, 6],
@@ -678,21 +644,17 @@
         useCORS: true,
         backgroundColor: '#ffffff',
         scrollY: 0,
-        scrollX: 0,
-        width: 750,
-        windowWidth: 750
+        scrollX: 0
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
     };
 
     try {
-      const pdfObj = await root.html2pdf().set(opt).from(cloneDoc).toPdf().get('pdf');
+      const pdfObj = await root.html2pdf().set(opt).from(htmlContent).toPdf().get('pdf');
       const pdfDataUri = pdfObj.output('datauristring');
-      staging.remove();
       const cleanB64 = pdfDataUri && pdfDataUri.includes(',') ? pdfDataUri.split(',')[1].trim() : (pdfDataUri || '').trim();
       return cleanB64;
     } catch (err) {
-      staging.remove();
       console.warn('Error al generar PDF en base64:', err);
       return null;
     }

@@ -884,8 +884,9 @@ ${urlConsulta}
           throw new Error('API cliente no disponible');
         }
       } catch (err) {
+        const errorMsg = err?.error || err?.message || (typeof err === 'string' ? err : 'Error al enviar por Gateway');
         if (root.toast) {
-          root.toast(err.error || 'Error al enviar por Gateway. Verifique que el Gateway esté conectado.', 'error');
+          root.toast(errorMsg, 'error');
         }
       } finally {
         btnGateway.disabled = false;

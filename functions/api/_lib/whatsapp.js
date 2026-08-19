@@ -83,9 +83,19 @@ ${urlConsulta}
 
   const finalMessage = customMessage || defaultMessage;
   const jsonStr = typeof dte === 'string' ? dte : JSON.stringify(dte, null, 2);
-  const jsonBase64 = typeof btoa === 'function'
-    ? btoa(unescape(encodeURIComponent(jsonStr)))
-    : Buffer.from(jsonStr).toString('base64');
+  
+  // Base64 seguro para Cloudflare Workers V8
+  let jsonBase64 = '';
+  try {
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    jsonBase64 = btoa(binary);
+  } catch {
+    jsonBase64 = Buffer.from(jsonStr).toString('base64');
+  }
 
   const cleanReceptor = (receptorNombre || 'CLIENTE').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 20);
   const baseName = `${tipoNom.replace(/\s+/g, '_')}_${numControl}_${cleanReceptor}`;
@@ -114,7 +124,14 @@ ${urlConsulta}
       body: JSON.stringify(payload)
     });
 
-    const data = await resp.json();
+    let data = null;
+    try {
+      data = await resp.json();
+    } catch {
+      const txt = await resp.text();
+      return { ok: false, error: `Error ${resp.status} del Gateway: ${txt}` };
+    }
+
     if (resp.ok && data.ok) {
       return {
         ok: true,
@@ -125,7 +142,7 @@ ${urlConsulta}
     } else {
       return {
         ok: false,
-        error: data.error || 'Error reportado por el Gateway de WhatsApp',
+        error: data.error || data.message || 'Error reportado por el Gateway de WhatsApp',
         detalle: data
       };
     }

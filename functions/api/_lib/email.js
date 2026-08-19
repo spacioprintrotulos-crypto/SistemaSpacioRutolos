@@ -192,9 +192,18 @@ export async function enviarEmailDTE({ DB, env, dte, destinatario, customAsunto,
 
   // Adjunto JSON oficial del DTE
   const jsonFilename = `${template.tipoNombre.replace(/\s+/g, '_')}_${template.numControl}_${template.receptorNombre.slice(0, 20)}.json`;
-  const jsonBase64 = typeof btoa === 'function'
-    ? btoa(unescape(encodeURIComponent(JSON.stringify(dte, null, 2))))
-    : Buffer.from(JSON.stringify(dte, null, 2)).toString('base64');
+  let jsonBase64 = '';
+  try {
+    const rawJson = JSON.stringify(dte, null, 2);
+    const bytes = new TextEncoder().encode(rawJson);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    jsonBase64 = btoa(binary);
+  } catch {
+    jsonBase64 = Buffer.from(JSON.stringify(dte, null, 2)).toString('base64');
+  }
 
   attachments.push({
     filename: jsonFilename,

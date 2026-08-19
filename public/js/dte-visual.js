@@ -732,20 +732,41 @@
       btnEnviar.textContent = 'Enviando...';
 
       try {
-        if (root.API && typeof root.API.enviarEmailDTE === 'function') {
-          const resp = await root.API.enviarEmailDTE({
+        const apiClient = window.API || root.API || (typeof API !== 'undefined' ? API : null);
+        let resp;
+        if (apiClient && typeof apiClient.enviarEmailDTE === 'function') {
+          resp = await apiClient.enviarEmailDTE({
             dteObj: dte,
             destinatario: dest,
             asunto: asu,
           });
-          if (root.toast) root.toast(resp.mensaje || `Correo enviado con éxito a ${dest}`, 'success');
-          modalEl.remove();
         } else {
-          if (root.toast) root.toast(`Correo preparado para ${dest}`, 'success');
-          modalEl.remove();
+          const fetchResp = await fetch('/api/dtes/enviar-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              dteObj: dte,
+              destinatario: dest,
+              asunto: asu,
+            })
+          });
+          resp = await fetchResp.json();
+          if (!fetchResp.ok || !resp.ok) {
+            throw new Error(resp.error || `Error HTTP ${fetchResp.status}`);
+          }
         }
+
+        const msgSuccess = resp.mensaje || `Correo enviado con éxito a ${dest}`;
+        if (root.toast) root.toast(msgSuccess, 'success');
+        else if (window.toast) window.toast(msgSuccess, 'success');
+        else alert(msgSuccess);
+        modalEl.remove();
       } catch (err) {
-        if (root.toast) root.toast(err.error || 'Error al enviar correo', 'error');
+        const errorMsg = err?.error || err?.message || (typeof err === 'string' ? err : 'Error al enviar correo');
+        if (root.toast) root.toast(errorMsg, 'error');
+        else if (window.toast) window.toast(errorMsg, 'error');
+        else alert(errorMsg);
       } finally {
         btnEnviar.disabled = false;
         btnEnviar.textContent = '✉️ Enviar Correo';
@@ -872,22 +893,41 @@ ${urlConsulta}
       btnGateway.textContent = 'Enviando WhatsApp...';
 
       try {
-        if (root.API && typeof root.API.enviarWhatsAppGateway === 'function') {
-          const resp = await root.API.enviarWhatsAppGateway({
+        const apiClient = window.API || root.API || (typeof API !== 'undefined' ? API : null);
+        let resp;
+        if (apiClient && typeof apiClient.enviarWhatsAppGateway === 'function') {
+          resp = await apiClient.enviarWhatsAppGateway({
             dteObj: dte,
             phone: phoneInput,
             customMessage: msgInput,
           });
-          if (root.toast) root.toast(resp.message || `✅ Mensaje de WhatsApp enviado con éxito al +${resp.phone || phoneInput}`, 'success');
-          modalEl.remove();
         } else {
-          throw new Error('API cliente no disponible');
+          const fetchResp = await fetch('/api/whatsapp/enviar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              dteObj: dte,
+              phone: phoneInput,
+              customMessage: msgInput,
+            })
+          });
+          resp = await fetchResp.json();
+          if (!fetchResp.ok || !resp.ok) {
+            throw new Error(resp.error || `Error HTTP ${fetchResp.status}`);
+          }
         }
+
+        const msgSuccess = resp.message || `✅ Mensaje de WhatsApp enviado con éxito al +${resp.phone || phoneInput}`;
+        if (root.toast) root.toast(msgSuccess, 'success');
+        else if (window.toast) window.toast(msgSuccess, 'success');
+        else alert(msgSuccess);
+        modalEl.remove();
       } catch (err) {
         const errorMsg = err?.error || err?.message || (typeof err === 'string' ? err : 'Error al enviar por Gateway');
-        if (root.toast) {
-          root.toast(errorMsg, 'error');
-        }
+        if (root.toast) root.toast(errorMsg, 'error');
+        else if (window.toast) window.toast(errorMsg, 'error');
+        else alert(errorMsg);
       } finally {
         btnGateway.disabled = false;
         btnGateway.textContent = '💬 Enviar Automático (Gateway)';

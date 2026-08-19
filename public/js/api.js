@@ -66,3 +66,6 @@ const API = {
   crearCotizacion(c) { return this.post('/api/cotizaciones', c); },
   eliminarCotizacion(id) { return this.del(`/api/cotizaciones/${id}`); },
 };
+
+if (typeof window !== 'undefined') window.API = API;
+if (typeof globalThis !== 'undefined') globalThis.API = API;

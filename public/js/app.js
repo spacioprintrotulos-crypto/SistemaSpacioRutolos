@@ -86,21 +86,40 @@ window.toggleTheme = () => {
 // ---------- Layout común ----------
 function appShell(contenido) {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const currentHash = location.hash || '#/';
   return `
   <div class="app-shell">
     <header class="app-top">
       <div class="app-brand">
-        <span class="app-logo-badge" style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;background:#ffffff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:4px">
-          <img src="img/logo.svg" alt="Logo" style="width:100%;height:100%;object-fit:contain;">
-        </span>
-        <strong>SISTEMA FAC2026</strong>
+        <a href="#/" class="app-brand-link">
+          <span class="app-logo-badge">
+            <img src="img/logo.svg" alt="Logo">
+          </span>
+          <div class="app-brand-text">
+            <strong>SISTEMA FAC2026</strong>
+            <span class="app-brand-tag">DTE El Salvador</span>
+          </div>
+        </a>
       </div>
+      <nav class="app-nav-bar">
+        <a href="#/" class="app-nav-link ${currentHash === '#/' || currentHash === '' ? 'active' : ''}">Inicio</a>
+        <a href="#/factura" class="app-nav-link ${currentHash === '#/factura' ? 'active' : ''}">Factura</a>
+        <a href="#/credito" class="app-nav-link ${currentHash === '#/credito' ? 'active' : ''}">Crédito Fiscal</a>
+        <a href="#/nota" class="app-nav-link ${currentHash === '#/nota' ? 'active' : ''}">Nota Crédito</a>
+        <a href="#/cotizaciones" class="app-nav-link ${currentHash === '#/cotizaciones' ? 'active' : ''}">Cotizaciones</a>
+        <a href="#/clientes" class="app-nav-link ${currentHash === '#/clientes' ? 'active' : ''}">Clientes</a>
+        <a href="#/dtes" class="app-nav-link ${currentHash.startsWith('#/dtes') ? 'active' : ''}">DTEs</a>
+        <a href="#/configuracion" class="app-nav-link ${currentHash === '#/configuracion' ? 'active' : ''}">Configuración</a>
+      </nav>
       <div class="app-userbox">
-        <span>${esc(state.usuario?.nombre || state.usuario?.usuario || 'Usuario')}</span>
+        <div class="app-user-pill">
+          <span class="app-user-avatar">${(state.usuario?.usuario || 'A')[0].toUpperCase()}</span>
+          <span class="app-user-name">${esc(state.usuario?.nombre || state.usuario?.usuario || 'Administrador')}</span>
+        </div>
         <button type="button" class="btn-theme-toggle" onclick="toggleTheme()" title="${isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}" aria-label="Cambiar tema">
           ${getThemeIcon()}
         </button>
-        <a href="#" onclick="logout(event)">Salir</a>
+        <a href="#" class="btn-logout-pill" onclick="logout(event)">Salir</a>
       </div>
     </header>
     <main class="app-body">${contenido}</main>
@@ -228,26 +247,43 @@ function renderLogin(app) {
 // ---------- VISTA: Menú ----------
 function renderMenu(app) {
   const tarjetas = [
-    { ruta: '#/factura', cls: 'green', t: 'Factura', s: 'Documento tributario. Precios incluyen IVA.', icon: 'factura' },
-    { ruta: '#/credito', cls: 'purple', t: 'Crédito Fiscal', s: 'CCF para contribuyentes. Con retenciones.', icon: 'credito' },
-    { ruta: '#/nota', cls: 'blue', t: 'Nota de Crédito', s: 'Anula o modifica una Factura o CCF emitida.', icon: 'nota' },
-    { ruta: '#/cotizaciones', cls: 'amber', t: 'Cotizaciones', s: 'Crea cotizaciones, calcula IVA 13% y genera PDF.', icon: 'cotizacion' },
-    { ruta: '#/clientes', cls: 'orange', t: 'Clientes', s: 'Directorio de receptores de tus DTEs.', icon: 'clientes' },
-    { ruta: '#/dtes', cls: 'slate', t: 'DTEs Emitidos', s: 'Historial, consulta y anulación de documentos.', icon: 'dtes' },
-    { ruta: '#/iva', cls: 'teal', t: 'IVA', s: 'En Construcción', icon: 'iva' },
-    { ruta: '#/configuracion', cls: 'pink', t: 'Configuración', s: 'Datos del emisor, credenciales MH y firma.', icon: 'config' },
+    { ruta: '#/factura', cls: 'card-emerald', cat: 'DOCUMENTO TRIBUTARIO', t: 'Factura', s: 'Consumidor Final. Precios con IVA 13% incluido.', icon: 'factura', badge: 'DTE 01' },
+    { ruta: '#/credito', cls: 'card-royal', cat: 'CONTRIBUYENTE', t: 'Crédito Fiscal', s: 'CCF para empresas con desglose de IVA y retenciones.', icon: 'credito', badge: 'DTE 03' },
+    { ruta: '#/nota', cls: 'card-cyan', cat: 'ANULACIÓN / AJUSTE', t: 'Nota de Crédito', s: 'Anula o modifica una Factura o CCF emitida.', icon: 'nota', badge: 'DTE 05' },
+    { ruta: '#/cotizaciones', cls: 'card-amber', cat: 'PROPUESTAS', t: 'Cotizaciones', s: 'Crea presupuestos rápidos con cálculo automático de IVA.', icon: 'cotizacion', badge: 'PDF' },
+    { ruta: '#/clientes', cls: 'card-indigo', cat: 'DIRECTORIO', t: 'Clientes', s: 'Gestión y consulta de receptores y contribuyentes.', icon: 'clientes', badge: 'Base D1' },
+    { ruta: '#/dtes', cls: 'card-slate', cat: 'HISTORIAL TRIBUTARIO', t: 'DTEs Emitidos', s: 'Consulta, descarga de JSON/PDF y anulación de DTEs.', icon: 'dtes', badge: 'MH SV' },
+    { ruta: '#/iva', cls: 'card-teal', cat: 'CONTROL FISCAL', t: 'IVA', s: 'Libros de compras y ventas a contribuyente.', icon: 'iva', badge: 'Próximamente' },
+    { ruta: '#/configuracion', cls: 'card-navy', cat: 'SISTEMA & FIRMA', t: 'Configuración', s: 'Datos del emisor, credenciales MH y firma electrónica.', icon: 'config', badge: 'Ajustes' },
   ];
   app.innerHTML = appShell(`
-    <div class="page-head">
-      <div><div class="crumb">Inicio</div><h2>Panel principal</h2></div>
+    <div class="page-head dashboard-head">
+      <div>
+        <div class="crumb">Panel de Control</div>
+        <h2>Módulos de Facturación DTE</h2>
+      </div>
+      <div class="actions">
+        <span class="status-badge-mh">
+          <span class="status-dot"></span> MH El Salvador Conectado
+        </span>
+      </div>
     </div>
     <div class="menu-grid">
       ${tarjetas.map((t) => `
         <a class="menu-card ${t.cls}" href="${t.ruta}">
-          <div class="icon">${ICONS[t.icon]}</div>
-          <div>
+          <div class="card-top-row">
+            <span class="card-category">${t.cat}</span>
+            <span class="card-badge">${t.badge}</span>
+          </div>
+          <div class="card-main">
             <div class="card-title">${t.t}</div>
             <div class="card-sub">${t.s}</div>
+          </div>
+          <div class="card-footer-row">
+            <div class="icon">${ICONS[t.icon]}</div>
+            <span class="card-action-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </span>
           </div>
         </a>`).join('')}
     </div>`);

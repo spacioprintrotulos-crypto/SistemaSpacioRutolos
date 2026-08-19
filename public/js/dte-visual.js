@@ -480,10 +480,9 @@
     }, 350);
   }
 
-  // Descarga directa a PDF usando html2pdf o iframe nativo
+  // Descarga directa a PDF usando el objeto DTE o el contenedor del modal
   function descargarDTEPDFDirecto(target, fileName) {
     let dteObj = null;
-    let el = null;
     let modalId = null;
 
     if (typeof target === 'string') {
@@ -491,79 +490,44 @@
       if (root.__dte_modal_cache && root.__dte_modal_cache[target]) {
         dteObj = root.__dte_modal_cache[target];
       }
-      const container = document.getElementById(`${target}-container`) || document.getElementById(target);
-      if (container) el = container.querySelector('.dte-document') || container;
-    } else if (target && target.nodeType) {
-      el = target.querySelector('.dte-document') || target;
     }
 
     const cleanFileName = fileName || 'Comprobante_DTE';
 
-    // Si tenemos el objeto DTE directo, usamos el generador aislado staging (100% libre de interferencias del DOM)
     if (dteObj) {
       return descargarDTECompleto(dteObj, {}, cleanFileName);
     }
 
-    if (!el) return;
-
-    if (typeof root.html2pdf === 'function') {
-      if (typeof root.toast === 'function') root.toast('Generando PDF...', 'info');
-
-      // Clonamos el elemento en un staging aislado para evitar que transforms/scroll del modal afecten a html2canvas
-      const staging = document.createElement('div');
-      staging.style.position = 'fixed';
-      staging.style.top = '0';
-      staging.style.left = '0';
-      staging.style.width = '740px';
-      staging.style.zIndex = '-99999';
-      staging.style.background = '#ffffff';
-      staging.style.margin = '0';
-      staging.style.padding = '0';
-      staging.appendChild(el.cloneNode(true));
-      document.body.appendChild(staging);
-
-      const cloneDoc = staging.querySelector('.dte-document') || staging;
-
-      const opt = {
-        margin: [6, 6, 6, 6],
-        filename: `${cleanFileName}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-      };
-
-      root.html2pdf().set(opt).from(cloneDoc).save()
-        .then(() => {
-          staging.remove();
-          if (typeof root.toast === 'function') root.toast('PDF descargado con éxito', 'success');
-        })
-        .catch((err) => {
-          staging.remove();
-          console.warn('Error en html2pdf, recurriendo a diálogo de impresión:', err);
-          if (modalId) imprimirDTEById(modalId);
-        });
-    } else {
-      if (modalId) imprimirDTEById(modalId);
+    if (modalId) {
+      imprimirDTEById(modalId);
     }
   }
 
-  // Crea un contenedor aislado fuera de la vista para renderizar el PDF sin interferencia de modales
+  // Crea un contenedor aislado para renderizar el PDF de manera limpia, centrada y sin cortes
   function crearStagingElement(dte, opciones) {
     const staging = document.createElement('div');
     staging.className = 'dte-staging-wrapper';
-    staging.style.position = 'absolute';
-    staging.style.left = '-9999px';
+    staging.style.position = 'fixed';
+    staging.style.left = '0';
     staging.style.top = '0';
     staging.style.width = '750px';
     staging.style.background = '#ffffff';
     staging.style.color = '#000000';
-    staging.style.zIndex = '999999';
+    staging.style.zIndex = '9999999';
+    staging.style.margin = '0';
+    staging.style.padding = '0';
     staging.innerHTML = renderDteHtml(dte, opciones);
     document.body.appendChild(staging);
+
+    const docEl = staging.querySelector('.dte-document');
+    if (docEl) {
+      docEl.style.boxShadow = 'none';
+      docEl.style.border = '1.5px solid #000000';
+      docEl.style.margin = '0 auto';
+      docEl.style.width = '740px';
+      docEl.style.maxWidth = '740px';
+    }
+
     return staging;
   }
 
@@ -581,7 +545,7 @@
       const cloneDoc = staging.querySelector('.dte-document') || staging;
 
       const opt = {
-        margin: [6, 6, 6, 6],
+        margin: [5, 5, 5, 5],
         filename: `${finalFileName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
@@ -590,7 +554,9 @@
           backgroundColor: '#ffffff',
           scrollX: 0,
           scrollY: 0,
-          windowWidth: 800
+          x: 0,
+          y: 0,
+          width: 750
         },
         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
@@ -618,7 +584,7 @@
     const cloneDoc = staging.querySelector('.dte-document') || staging;
 
     const opt = {
-      margin: [6, 6, 6, 6],
+      margin: [5, 5, 5, 5],
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
         scale: 2,
@@ -626,7 +592,9 @@
         backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 800
+        x: 0,
+        y: 0,
+        width: 750
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
     };

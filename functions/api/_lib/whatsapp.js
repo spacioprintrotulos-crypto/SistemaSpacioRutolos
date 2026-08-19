@@ -13,6 +13,15 @@ function getNombreTipoDTE(tipo) {
   }
 }
 
+export function normalizeGatewayUrl(url) {
+  if (!url) return '';
+  let u = String(url).trim();
+  if (!/^https?:\/\//i.test(u)) {
+    u = 'https://' + u;
+  }
+  return u.replace(/\/+$/, '');
+}
+
 export async function getWhatsAppConfig(DB) {
   if (!DB) return { url: '', auto: false, phone: '50372554916' };
   const urlRow = await DB.prepare("SELECT valor FROM app_config WHERE clave = 'whatsapp_gateway_url'").first();
@@ -20,8 +29,10 @@ export async function getWhatsAppConfig(DB) {
   const phoneRow = await DB.prepare("SELECT valor FROM app_config WHERE clave = 'whatsapp_notificaciones'").first();
   const keyRow = await DB.prepare("SELECT valor FROM app_config WHERE clave = 'whatsapp_api_key'").first();
 
+  const rawUrl = urlRow?.valor || '';
   return {
-    url: urlRow?.valor || '',
+    url: normalizeGatewayUrl(rawUrl),
+    rawUrl,
     auto: autoRow?.valor === '1',
     phone: phoneRow?.valor || '50372554916',
     apiKey: keyRow?.valor || 'spacio_sec_2026',

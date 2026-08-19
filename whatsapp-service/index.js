@@ -34,63 +34,79 @@ let connectedUser = null;
 const logger = pino({ level: 'silent' });
 
 async function initWhatsApp() {
-  if (!fs.existsSync(AUTH_DIR)) {
-    fs.mkdirSync(AUTH_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(AUTH_DIR)) {
+      fs.mkdirSync(AUTH_DIR, { recursive: true });
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+    
+    let version = [2, 3000, 1015901307];
+    try {
+      const v = await fetchLatestBaileysVersion();
+      if (v && v.version) version = v.version;
+    } catch (e) {
+      console.log('Usando versión Baileys por defecto:', version);
+    }
+
+    console.log('Iniciando socket Baileys con versión:', version);
+
+    sock = makeWASocket({
+      version,
+      logger,
+      auth: state,
+      browser: ['Spacio Facturacion DTE', 'Chrome', '1.0.0'],
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
+    });
+
+    sock.ev.on('creds.update', saveCreds);
+
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        currentQr = qr;
+        console.log('⚡ Nuevo código QR de WhatsApp recibido. Generando imagen DataURL...');
+        try {
+          currentQrDataUrl = await qrcode.toDataURL(qr, { margin: 2, scale: 6 });
+          console.log('✅ Código QR DataURL listo para ser escaneado.');
+        } catch (err) {
+          console.error('Error generando QR DataURL:', err);
+        }
+      }
+
+      if (connection === 'close') {
+        isConnected = false;
+        connectedUser = null;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+        console.log(`Conexión cerrada. Código: ${statusCode}. Reconectando: ${shouldReconnect}`);
+
+        if (shouldReconnect) {
+          setTimeout(initWhatsApp, 4000);
+        } else {
+          console.log('Sesión cerrada por el usuario. Limpiando credenciales...');
+          fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+          setTimeout(initWhatsApp, 2000);
+        }
+      } else if (connection === 'open') {
+        isConnected = true;
+        currentQr = null;
+        currentQrDataUrl = null;
+        connectedUser = sock.user;
+        console.log(`✅ WhatsApp Conectado exitosamente como: ${sock.user?.id || sock.user?.name}`);
+      }
+    });
+  } catch (err) {
+    console.error('Error inicializando WhatsApp socket:', err);
+    setTimeout(initWhatsApp, 5000);
   }
-
-  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
-  const { version } = await fetchLatestBaileysVersion();
-
-  sock = makeWASocket({
-    version,
-    logger,
-    printQRInTerminal: true,
-    auth: state,
-    generateHighQualityLinkPreview: true,
-    browser: ['Spacio Facturacion DTE', 'Chrome', '1.0.0']
-  });
-
-  sock.ev.on('creds.update', saveCreds);
-
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) {
-      currentQr = qr;
-      try {
-        currentQrDataUrl = await qrcode.toDataURL(qr, { margin: 2, scale: 6 });
-      } catch (err) {
-        console.error('Error generando QR DataURL:', err);
-      }
-    }
-
-    if (connection === 'close') {
-      isConnected = false;
-      connectedUser = null;
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
-      console.log(`Conexión cerrada. Razón: ${statusCode}. Reconectando: ${shouldReconnect}`);
-
-      if (shouldReconnect) {
-        setTimeout(initWhatsApp, 3000);
-      } else {
-        console.log('Sesión cerrada por el usuario. Limpiando credenciales...');
-        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-        setTimeout(initWhatsApp, 2000);
-      }
-    } else if (connection === 'open') {
-      isConnected = true;
-      currentQr = null;
-      currentQrDataUrl = null;
-      connectedUser = sock.user;
-      console.log(`✅ WhatsApp Conectado exitosamente como: ${sock.user?.id || sock.user?.name}`);
-    }
-  });
 }
 
 // Iniciar conexión al arrancar el servidor
-initWhatsApp().catch((err) => console.error('Error iniciando WhatsApp socket:', err));
+initWhatsApp();
 
 // Middleware de verificación de API Key opcional
 function checkAuth(req, res, next) {
@@ -285,8 +301,8 @@ app.get('/', (req, res) => {
   `);
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
-  console.log(`🟢 WhatsApp Gateway corriendo en puerto: ${PORT}`);
+  console.log(`🟢 WhatsApp Gateway corriendo en puerto: ${PORT} (0.0.0.0)`);
   console.log(`====================================================`);
 });

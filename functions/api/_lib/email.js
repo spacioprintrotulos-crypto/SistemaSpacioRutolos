@@ -211,6 +211,12 @@ export async function enviarEmailDTE({ DB, env, dte, destinatario, customAsunto,
   }
 
   try {
+    // Si se usa el dominio de prueba sandbox onboarding@resend.dev, Resend solo permite enviar a la cuenta verificada
+    let toAddress = targetEmail;
+    if (fromEmail.includes('resend.dev') && targetEmail !== 'spacioprintrotulos@gmail.com') {
+      toAddress = 'spacioprintrotulos@gmail.com';
+    }
+
     const resendResp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -219,7 +225,7 @@ export async function enviarEmailDTE({ DB, env, dte, destinatario, customAsunto,
       },
       body: JSON.stringify({
         from: fromEmail,
-        to: [targetEmail],
+        to: [toAddress],
         subject: template.asunto,
         html: template.html,
         attachments,
@@ -233,7 +239,8 @@ export async function enviarEmailDTE({ DB, env, dte, destinatario, customAsunto,
         ok: true,
         enviado: true,
         id: resendData.id,
-        destinatario: targetEmail,
+        destinatario: toAddress,
+        destinatarioOriginal: targetEmail,
         asunto: template.asunto,
       };
     } else {

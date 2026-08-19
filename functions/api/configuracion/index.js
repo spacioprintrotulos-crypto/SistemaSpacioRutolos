@@ -12,6 +12,16 @@ export async function onRequestGet({ request, env }) {
   const correlativos = await env.DB.prepare('SELECT tipo_dte, ultimo FROM correlativos').all();
   const logoRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'empresa_logo_b64'").first();
   const colorRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'dte_color_primario'").first();
+  const resendKeyRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'resend_api_key'").first();
+  const autoEmailRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'auto_enviar_email'").first();
+  const remitenteRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'email_remitente'").first();
+  const notifEmailRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'email_notificaciones'").first();
+
+  const waUrlRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'whatsapp_gateway_url'").first();
+  const waAutoRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'auto_enviar_whatsapp'").first();
+  const waPhoneRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'whatsapp_notificaciones'").first();
+  const waKeyRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'whatsapp_api_key'").first();
+
   return json({
     ok: true,
     emisor,
@@ -19,6 +29,19 @@ export async function onRequestGet({ request, env }) {
     apariencia: {
       logo_b64: logoRow?.valor || null,
       color_primario: colorRow?.valor || '#1b365d',
+    },
+    email: {
+      resend_api_key: resendKeyRow?.valor || '',
+      resend_api_key_configurada: !!resendKeyRow?.valor,
+      auto_enviar_email: !autoEmailRow || autoEmailRow.valor !== '0',
+      email_remitente: remitenteRow?.valor || 'Spacio Rótulos <onboarding@resend.dev>',
+      email_notificaciones: notifEmailRow?.valor || 'spacioprintrotulos@gmail.com',
+    },
+    whatsapp: {
+      gateway_url: waUrlRow?.valor || '',
+      auto_enviar: waAutoRow?.valor === '1',
+      phone: waPhoneRow?.valor || '50372554916',
+      api_key: waKeyRow?.valor || 'spacio_sec_2026',
     },
     mh: {
       ambiente,
@@ -103,6 +126,62 @@ export async function onRequestPut({ request, env }) {
           `INSERT INTO app_config (clave, valor) VALUES ('dte_color_primario', ?)
            ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
         ).bind(ap.color_primario || '#1b365d').run();
+      }
+    }
+
+    if (body.email && typeof body.email === 'object') {
+      const em = body.email;
+      if (em.resend_api_key !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('resend_api_key', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(em.resend_api_key || '').run();
+      }
+      if (em.auto_enviar_email !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('auto_enviar_email', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(em.auto_enviar_email ? '1' : '0').run();
+      }
+      if (em.email_remitente !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('email_remitente', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(em.email_remitente || 'Spacio Rótulos <onboarding@resend.dev>').run();
+      }
+      if (em.email_notificaciones !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('email_notificaciones', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(em.email_notificaciones || 'spacioprintrotulos@gmail.com').run();
+      }
+    }
+
+    if (body.whatsapp && typeof body.whatsapp === 'object') {
+      const wa = body.whatsapp;
+      if (wa.gateway_url !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('whatsapp_gateway_url', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(wa.gateway_url || '').run();
+      }
+      if (wa.auto_enviar !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('auto_enviar_whatsapp', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(wa.auto_enviar ? '1' : '0').run();
+      }
+      if (wa.phone !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('whatsapp_notificaciones', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(wa.phone || '50372554916').run();
+      }
+      if (wa.api_key !== undefined) {
+        await env.DB.prepare(
+          `INSERT INTO app_config (clave, valor) VALUES ('whatsapp_api_key', ?)
+           ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor`
+        ).bind(wa.api_key || 'spacio_sec_2026').run();
       }
     }
 

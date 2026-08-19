@@ -6,6 +6,8 @@ import { getEmisor, getMHConfig, nextCorrelativo } from '../_lib/db.js';
 import { BUILDERS } from '../_lib/dte.js';
 import { firmarJWS } from '../_lib/crypto.js';
 import { mhAutenticar, mhRecepcionDTE } from '../_lib/mh.js';
+import { enviarEmailDTE } from '../_lib/email.js';
+import { enviarWhatsAppGateway } from '../_lib/whatsapp.js';
 
 const VERSIONES = { '01': 1, '03': 3, '05': 3 };
 
@@ -122,6 +124,42 @@ export async function onRequestPost({ request, env }) {
       tipoDte === '05' ? body.docRelacionado.numeroDocumento : null
     ).run();
 
+    // Envío automático de correo con adjunto JSON
+    let emailStatus = { ok: false };
+    try {
+      // Revisa si el envío automático está activo (por defecto sí)
+      const autoEmailRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'auto_enviar_email'").first();
+      const autoActivo = !autoEmailRow || autoEmailRow.valor !== '0';
+
+      if (autoActivo && (estado === 'PROCESADO' || estado === 'SIMULADO')) {
+        const dest = 'spacioprintrotulos@gmail.com';
+        emailStatus = await enviarEmailDTE({
+          DB: env.DB,
+          env,
+          dte,
+          destinatario: dest,
+        });
+      }
+    } catch (emailErr) {
+      console.warn('Error en envío automático de correo:', emailErr);
+    }
+
+    // Envío automático de WhatsApp si el gateway está activo
+    let waStatus = { ok: false };
+    try {
+      const autoWaRow = await env.DB.prepare("SELECT valor FROM app_config WHERE clave = 'auto_enviar_whatsapp'").first();
+      const autoWaActivo = autoWaRow?.valor === '1';
+
+      if (autoWaActivo && (estado === 'PROCESADO' || estado === 'SIMULADO')) {
+        waStatus = await enviarWhatsAppGateway({
+          DB: env.DB,
+          dte,
+        });
+      }
+    } catch (waErr) {
+      console.warn('Error en envío automático de WhatsApp:', waErr);
+    }
+
     return json({
       ok: estado !== 'ERROR',
       id: res.meta.last_row_id,
@@ -132,6 +170,11 @@ export async function onRequestPost({ request, env }) {
       total,
       dte,
       respuesta,
+      emailEnviado: emailStatus.ok,
+      emailDestinatario: emailStatus.destinatario || 'spacioprintrotulos@gmail.com',
+      emailId: emailStatus.id || null,
+      whatsappEnviado: waStatus.ok,
+      whatsappMensaje: waStatus.message || null,
     });
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);

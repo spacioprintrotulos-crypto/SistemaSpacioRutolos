@@ -681,6 +681,7 @@ function mostrarResultado(r) {
           <h3 style="margin-bottom:0">${ok ? '✅ DTE Generado y Procesado' : '⚠️ DTE con Observaciones o Errores'}</h3>
           <span class="badge-estado ${esc(r.estado)}">${esc(r.estado)}</span>
         </div>
+        ${r.emailEnviado ? `<div class="alert alert-success mb" style="display:flex;align-items:center;gap:8px;font-size:13px"><span>✉️</span><span><b>Correo enviado automáticamente:</b> Comprobante DTE y archivo JSON entregados a <b>${esc(r.emailDestinatario || 'spacioprintrotulos@gmail.com')}</b></span></div>` : ''}
         ${r.estado === 'SIMULADO' ? '<div class="alert alert-warning mb">Credenciales MH no configuradas: documento generado en modo SIMULADO (no transmitido). Configure su certificado y credenciales en <a href="#/configuracion" style="color:var(--azul)">Configuración</a>.</div>' : ''}
         ${r.estado === 'RECHAZADO' || r.estado === 'ERROR' ? `<div class="alert alert-error mb">${esc(JSON.stringify(r.respuesta))}</div>` : ''}
         <div class="resumen-box mb">
@@ -1661,9 +1662,11 @@ function renderConfiguracion(app) {
 }
 
 function pintarConfig(r) {
-  const { emisor, mh, correlativos, ambiente_activo, apariencia } = r;
+  const { emisor, mh, correlativos, ambiente_activo, apariencia, email, whatsapp } = r;
   const emisorOk = emisor?.nit && emisor?.nombre;
   const firmaOk = mh.firma_activa;
+  const emailOk = email?.resend_api_key_configurada;
+  const waOk = !!whatsapp?.gateway_url;
   let currentLogo = apariencia?.logo_b64 || localStorage.getItem('fac2026_logo_empresa') || '';
   let currentColor = apariencia?.color_primario || localStorage.getItem('fac2026_color_primario') || '#1b365d';
 
@@ -1685,8 +1688,9 @@ function pintarConfig(r) {
     <div class="config-status">
       <div class="config-item"><div class="cfg-label">Emisor</div><div class="cfg-value ${emisorOk ? 'cfg-ok' : 'cfg-warn'}">${emisorOk ? 'Configurado' : 'Pendiente'}</div></div>
       <div class="config-item"><div class="cfg-label">Firma electrónica</div><div class="cfg-value ${firmaOk ? 'cfg-ok' : 'cfg-warn'}">${firmaOk ? 'Cargada' : 'No cargada'}</div></div>
-      <div class="config-item"><div class="cfg-label">Ambiente MH activo</div><div class="cfg-value">${ambiente_activo === '01' ? 'Producción' : 'Pruebas'}</div></div>
-      <div class="config-item"><div class="cfg-label">Certificado vence</div><div class="cfg-value">${esc(mh.cert_vence || '—')}</div></div>
+      <div class="config-item"><div class="cfg-label">Correo Automático</div><div class="cfg-value ${emailOk ? 'cfg-ok' : 'cfg-warn'}">${emailOk ? 'Activo (Resend)' : 'Sin clave'}</div></div>
+      <div class="config-item"><div class="cfg-label">WhatsApp Gateway</div><div class="cfg-value ${waOk ? 'cfg-ok' : 'cfg-warn'}">${waOk ? 'Configurado' : 'Pendiente'}</div></div>
+      <div class="config-item"><div class="cfg-label">Ambiente MH</div><div class="cfg-value">${ambiente_activo === '01' ? 'Producción' : 'Pruebas'}</div></div>
     </div>
 
     <div class="card">
@@ -1776,6 +1780,73 @@ function pintarConfig(r) {
         : `<div class="form-field"><label>Archivo .crt (PKCS#12)</label><input id="f-archivo" type="file" accept=".crt,.p12,.pfx"></div>
            <div class="form-field"><label>Contraseña del certificado</label><input id="f-pwd" type="password"></div>
            <button class="btn btn-verde" id="btn-subir-firma">Cargar certificado</button>`}
+    </div>
+
+    <div class="card">
+      <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin-bottom:2px">📧 Envío Automático de Correo Electrónico (Resend)</h3>
+          <div class="text-gris" style="font-size:12.5px">El sistema envía el comprobante oficial con logo, resumen, PDF y JSON firmado automáticamente en segundo plano al emitir cada DTE.</div>
+        </div>
+        <button class="btn btn-secundario" id="btn-probar-email" style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px">🧪 Enviar Correo de Prueba</button>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-field">
+          <label>Resend API Key</label>
+          <input id="cfg-resend-key" type="password" value="${esc(email?.resend_api_key || '')}" placeholder="re_...">
+        </div>
+        <div class="form-field">
+          <label>Remitente Oficial</label>
+          <input id="cfg-email-remitente" value="${esc(email?.email_remitente || 'Spacio Rótulos <onboarding@resend.dev>')}">
+        </div>
+        <div class="form-field">
+          <label>Correo de Pruebas / Notificaciones</label>
+          <input id="cfg-email-notif" value="${esc(email?.email_notificaciones || 'spacioprintrotulos@gmail.com')}">
+        </div>
+        <div class="form-field" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+          <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:13.5px">
+            <input type="checkbox" id="cfg-auto-email" ${email?.auto_enviar_email !== false ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer">
+            Envío Automático en Segundo Plano al Emitir DTE
+          </label>
+        </div>
+      </div>
+      <div class="mt"><button class="btn btn-verde" id="btn-guardar-email">Guardar configuración de correo</button></div>
+    </div>
+
+    <div class="card">
+      <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin-bottom:2px">💬 Gateway de WhatsApp (Railway / Conexión QR)</h3>
+          <div class="text-gris" style="font-size:12.5px">Conecta tu número (+503 7255 4916) escaneando un código QR una sola vez para enviar mensajes, PDFs y JSONs automáticos.</div>
+        </div>
+        <div class="flex" style="gap:8px">
+          <button class="btn btn-whatsapp" id="btn-escanear-qr-wa" style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px">📱 Escanear QR / Estado</button>
+          <button class="btn btn-secundario" id="btn-probar-wa" style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px">🧪 Probar Envío</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-field">
+          <label>URL del Gateway en Railway / Servidor</label>
+          <input id="cfg-wa-url" value="${esc(whatsapp?.gateway_url || '')}" placeholder="https://tu-servicio.up.railway.app o http://localhost:3000">
+        </div>
+        <div class="form-field">
+          <label>Teléfono de Pruebas / Notificaciones</label>
+          <input id="cfg-wa-phone" value="${esc(whatsapp?.phone || '50372554916')}">
+        </div>
+        <div class="form-field">
+          <label>API Secret (Opcional)</label>
+          <input id="cfg-wa-secret" type="password" value="${esc(whatsapp?.api_key || 'spacio_sec_2026')}">
+        </div>
+        <div class="form-field" style="display:flex;align-items:center;gap:10px;padding-top:22px">
+          <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:13.5px">
+            <input type="checkbox" id="cfg-auto-wa" ${whatsapp?.auto_enviar ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer">
+            Envío Automático por WhatsApp al Emitir DTE
+          </label>
+        </div>
+      </div>
+      <div class="mt"><button class="btn btn-verde" id="btn-guardar-wa">Guardar configuración de WhatsApp</button></div>
     </div>
 
     <div class="card">
@@ -1999,6 +2070,196 @@ function pintarConfig(r) {
     catch (e) { toast(e.error, 'error'); }
   });
 
+  // Configuración de Correo
+  $('#btn-probar-email')?.addEventListener('click', async () => {
+    const btn = $('#btn-probar-email');
+    const dest = $('#cfg-email-notif')?.value?.trim() || 'spacioprintrotulos@gmail.com';
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    try {
+      // DTE de prueba básico para verificar conexión con Resend
+      const dtePrueba = {
+        identificacion: {
+          tipoDte: '01',
+          numeroControl: 'DTE-01-PRUEBA-00001',
+          codigoGeneracion: 'A8C503F7-DAC7-4B08-A0DB-59082205E642',
+          fecEmi: new Date().toISOString().slice(0, 10),
+          ambiente: $('#mh-ambiente')?.value || '00',
+        },
+        receptor: {
+          nombre: 'SPACIO RÓTULOS (PRUEBA DE SISTEMA)',
+          nit: '12012608691018',
+          correo: dest,
+        },
+        resumen: {
+          totalPagar: 79.10,
+          montoTotalOperacion: 79.10,
+        }
+      };
+
+      const resp = await API.enviarEmailDTE({
+        dteObj: dtePrueba,
+        destinatario: dest,
+        asunto: 'Prueba de Envío de Correo — Spacio Rótulos',
+      });
+      toast(`✅ Correo de prueba enviado exitosamente a ${dest}`, 'success');
+    } catch (e) {
+      toast(e.error || 'Error al enviar correo de prueba', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🧪 Enviar Correo de Prueba';
+    }
+  });
+
+  $('#btn-guardar-email')?.addEventListener('click', async () => {
+    const body = {
+      email: {
+        resend_api_key: $('#cfg-resend-key')?.value?.trim() || '',
+        email_remitente: $('#cfg-email-remitente')?.value?.trim() || 'Spacio Rótulos <onboarding@resend.dev>',
+        email_notificaciones: $('#cfg-email-notif')?.value?.trim() || 'spacioprintrotulos@gmail.com',
+        auto_enviar_email: $('#cfg-auto-email')?.checked,
+      }
+    };
+    try {
+      await API.guardarConfig(body);
+      toast('Configuración de correo guardada', 'success');
+      renderConfiguracion($('#app'));
+    } catch (e) {
+      toast(e.error || 'Error al guardar la configuración de correo', 'error');
+    }
+  });
+
+  // Configuración de WhatsApp Gateway
+  $('#btn-escanear-qr-wa')?.addEventListener('click', async () => {
+    const modalId = 'modal-qr-wa-' + Date.now();
+    const modalHtml = `
+      <div class="modal-backdrop" id="${modalId}" onclick="if(event.target===this)this.remove()">
+        <div class="modal" style="max-width:520px;text-align:center;padding:24px">
+          <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h3 style="margin:0">📱 Conexión WhatsApp Gateway</h3>
+            <button class="btn btn-ghost" style="padding:4px 8px" onclick="document.getElementById('${modalId}').remove()">✕</button>
+          </div>
+          <div id="${modalId}-content">
+            <div class="center text-gris" style="padding:20px">Consultando estado del Gateway...</div>
+          </div>
+          <div class="modal-actions" style="justify-content:center;margin-top:18px">
+            <button class="btn btn-secundario" id="${modalId}-btn-refresh">🔄 Actualizar Estado / QR</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const checkStatus = async () => {
+      const contentEl = document.getElementById(`${modalId}-content`);
+      if (!contentEl) return;
+      try {
+        const r = await API.whatsappStatus();
+        if (!r.configurado) {
+          contentEl.innerHTML = `
+            <div class="alert alert-warn" style="font-size:13px;text-align:left;line-height:1.5">
+              ⚠️ <b>Gateway no configurado:</b><br>
+              Ingresa la URL de tu servicio de Railway en el campo <i>"URL del Gateway en Railway"</i> (ej. <code>https://tu-app.up.railway.app</code>) y presiona <b>Guardar</b>.
+            </div>
+          `;
+          return;
+        }
+
+        if (r.connected) {
+          contentEl.innerHTML = `
+            <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:20px;margin-bottom:10px">
+              <div style="font-size:36px;margin-bottom:8px">🟢</div>
+              <h4 style="color:#15803d;margin:0 0 6px 0">¡WhatsApp Conectado y Listo!</h4>
+              <p style="color:#166534;font-size:13px;margin:0">
+                Sesión vinculada como: <b>${esc(r.user?.name || r.user?.phone || 'Spacio Rótulos')}</b><br>
+                El sistema enviará los comprobantes automáticamente.
+              </p>
+            </div>
+          `;
+        } else if (r.qrDataUrl) {
+          contentEl.innerHTML = `
+            <p style="font-size:13.5px;color:var(--texto);margin-bottom:12px">
+              Abre WhatsApp en tu teléfono (<b>+503 7255 4916</b>) → <b>Dispositivos vinculados</b> → <b>Vincular un dispositivo</b> y escanea este código:
+            </p>
+            <div style="background:#fff;padding:14px;border-radius:16px;display:inline-block;box-shadow:0 6px 20px rgba(0,0,0,0.12)">
+              <img src="${r.qrDataUrl}" alt="QR WhatsApp" style="width:230px;height:230px;display:block">
+            </div>
+            <div class="text-gris small" style="margin-top:10px">Este código se actualiza automáticamente cada 20 segundos.</div>
+          `;
+        } else {
+          contentEl.innerHTML = `
+            <div class="alert alert-warn" style="font-size:13px;text-align:left">
+              El Gateway está iniciando o generando un nuevo código QR. Por favor presiona <b>Actualizar</b> en unos segundos.
+            </div>
+          `;
+        }
+      } catch (err) {
+        contentEl.innerHTML = `
+          <div class="alert alert-error" style="font-size:13px;text-align:left">
+            ❌ <b>Error al conectar con el Gateway:</b><br>${esc(err.error || err.message || 'Verifique que la URL de Railway sea correcta y el servicio esté encendido.')}
+          </div>
+        `;
+      }
+    };
+
+    checkStatus();
+    document.getElementById(`${modalId}-btn-refresh`)?.addEventListener('click', checkStatus);
+  });
+
+  $('#btn-probar-wa')?.addEventListener('click', async () => {
+    const btn = $('#btn-probar-wa');
+    const phone = $('#cfg-wa-phone')?.value?.trim() || '50372554916';
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+    try {
+      const dtePrueba = {
+        identificacion: {
+          tipoDte: '01',
+          numeroControl: 'DTE-01-PRUEBA-00001',
+          codigoGeneracion: 'A8C503F7-DAC7-4B08-A0DB-59082205E642',
+          fecEmi: new Date().toISOString().slice(0, 10),
+          ambiente: $('#mh-ambiente')?.value || '00',
+        },
+        receptor: {
+          nombre: 'SPACIO RÓTULOS (PRUEBA WHATSAPP)',
+        },
+        resumen: {
+          totalPagar: 79.10,
+        }
+      };
+
+      const resp = await API.enviarWhatsAppGateway({
+        dteObj: dtePrueba,
+        phone,
+      });
+      toast(`✅ WhatsApp de prueba enviado exitosamente a +${phone}`, 'success');
+    } catch (e) {
+      toast(e.error || 'Error al enviar WhatsApp de prueba. Verifique que el Gateway esté conectado.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🧪 Probar Envío';
+    }
+  });
+
+  $('#btn-guardar-wa')?.addEventListener('click', async () => {
+    const body = {
+      whatsapp: {
+        gateway_url: $('#cfg-wa-url')?.value?.trim() || '',
+        phone: $('#cfg-wa-phone')?.value?.trim() || '50372554916',
+        api_key: $('#cfg-wa-secret')?.value?.trim() || 'spacio_sec_2026',
+        auto_enviar: $('#cfg-auto-wa')?.checked,
+      }
+    };
+    try {
+      await API.guardarConfig(body);
+      toast('Configuración de WhatsApp guardada', 'success');
+      renderConfiguracion($('#app'));
+    } catch (e) {
+      toast(e.error || 'Error al guardar configuración de WhatsApp', 'error');
+    }
+  });
+
   // Correlativos
   $('#btn-guardar-corr').addEventListener('click', async () => {
     const corr = {};
@@ -2007,13 +2268,25 @@ function pintarConfig(r) {
     catch (e) { toast(e.error, 'error'); }
   });
 
-  // Guardado General (Apariencia + Emisor + MH + Correlativos en una sola operación)
+  // Guardado General (Apariencia + Emisor + Email + WhatsApp + MH + Correlativos en una sola operación)
   const guardarTodoConfig = async () => {
     const ambiente = $('#mh-ambiente').value;
     const body = {
       apariencia: {
         logo_b64: currentLogo,
         color_primario: currentColor,
+      },
+      email: {
+        resend_api_key: $('#cfg-resend-key')?.value?.trim() || '',
+        email_remitente: $('#cfg-email-remitente')?.value?.trim() || 'Spacio Rótulos <onboarding@resend.dev>',
+        email_notificaciones: $('#cfg-email-notif')?.value?.trim() || 'spacioprintrotulos@gmail.com',
+        auto_enviar_email: $('#cfg-auto-email')?.checked,
+      },
+      whatsapp: {
+        gateway_url: $('#cfg-wa-url')?.value?.trim() || '',
+        phone: $('#cfg-wa-phone')?.value?.trim() || '50372554916',
+        api_key: $('#cfg-wa-secret')?.value?.trim() || 'spacio_sec_2026',
+        auto_enviar: $('#cfg-auto-wa')?.checked,
       },
       emisor: {
         ambiente,

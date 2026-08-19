@@ -50,6 +50,8 @@ const API = {
   emitir(body) { return this.post('/api/dtes/emitir', body); },
   anular(body) { return this.post('/api/dtes/anular', body); },
   enviarEmailDTE(body) { return this.post('/api/dtes/enviar-email', body); },
+  whatsappStatus() { return this.get('/api/whatsapp/status'); },
+  enviarWhatsAppGateway(body) { return this.post('/api/whatsapp/enviar', body); },
 
   // ---- Configuración ----
   configuracion(ambiente) { return this.get('/api/configuracion', { ambiente }); },

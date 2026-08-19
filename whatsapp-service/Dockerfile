@@ -1,17 +1,13 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Instalar dependencias
-COPY package*.json ./
-RUN npm install --production
+COPY package.json package-lock.json* ./
+RUN npm install
 
-# Copiar código fuente
 COPY . .
 
-# Exponer puerto
 EXPOSE 3000
-
 ENV PORT=3000
 ENV NODE_ENV=production
 

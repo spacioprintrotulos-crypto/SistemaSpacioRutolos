@@ -17,3 +17,5 @@ secrets/
 *.pfx
 tmp/
 dist-test/
+auth_info_baileys/
+

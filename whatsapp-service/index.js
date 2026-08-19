@@ -22,7 +22,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 const PORT = process.env.PORT || 3000;
 const API_SECRET = process.env.API_SECRET || 'spacio_sec_2026';
-const AUTH_DIR = process.env.AUTH_DIR || path.join(__dirname, 'auth_info_baileys');
+const VOLUME_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.DATA_DIR || '';
+const AUTH_DIR = VOLUME_PATH ? path.join(VOLUME_PATH, 'auth_info_baileys') : (process.env.AUTH_DIR || path.join(__dirname, 'auth_info_baileys'));
 
 let sock = null;
 let currentQr = null;
@@ -208,16 +209,20 @@ app.post('/send-dte', checkAuth, async (req, res) => {
     let pdfResult = null;
     if (pdfBase64) {
       try {
-        const cleanB64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
+        const cleanB64 = String(pdfBase64).includes(',') ? String(pdfBase64).split(',')[1].trim() : String(pdfBase64).trim();
         const pdfBuffer = Buffer.from(cleanB64, 'base64');
-        const filename = pdfFileName || 'Comprobante_DTE.pdf';
+        const filename = (pdfFileName || 'Comprobante_DTE.pdf').replace(/[^\w\d\.-]/g, '_');
 
-        pdfResult = await sock.sendMessage(jid, {
-          document: pdfBuffer,
-          mimetype: 'application/pdf',
-          fileName: filename,
-          caption: `📄 Comprobante Tributario Electrónico Oficial: ${filename}`
-        });
+        if (pdfBuffer.length > 100) {
+          pdfResult = await sock.sendMessage(jid, {
+            document: pdfBuffer,
+            mimetype: 'application/pdf',
+            fileName: filename,
+            caption: `📄 Comprobante Tributario Electrónico Oficial: ${filename}`
+          });
+        } else {
+          console.warn('Buffer de PDF vacío o inválido (tamaño:', pdfBuffer.length, 'bytes)');
+        }
       } catch (pdfErr) {
         console.warn('Advertencia al enviar PDF adjunto por WhatsApp:', pdfErr.message);
       }
@@ -227,16 +232,18 @@ app.post('/send-dte', checkAuth, async (req, res) => {
     let jsonResult = null;
     if (jsonBase64) {
       try {
-        const cleanB64 = jsonBase64.replace(/^data:application\/json;base64,/, '');
+        const cleanB64 = String(jsonBase64).includes(',') ? String(jsonBase64).split(',')[1].trim() : String(jsonBase64).trim();
         const jsonBuffer = Buffer.from(cleanB64, 'base64');
-        const filename = jsonFileName || 'DTE_Firmado.json';
+        const filename = (jsonFileName || 'DTE_Firmado.json').replace(/[^\w\d\.-]/g, '_');
 
-        jsonResult = await sock.sendMessage(jid, {
-          document: jsonBuffer,
-          mimetype: 'application/octet-stream',
-          fileName: filename,
-          caption: `📦 Archivo JSON Firmado y Autorizado por el MH: ${filename}`
-        });
+        if (jsonBuffer.length > 20) {
+          jsonResult = await sock.sendMessage(jid, {
+            document: jsonBuffer,
+            mimetype: 'application/octet-stream',
+            fileName: filename,
+            caption: `📦 Archivo JSON Firmado y Autorizado por el MH: ${filename}`
+          });
+        }
       } catch (jsonErr) {
         console.warn('Advertencia al enviar JSON adjunto por WhatsApp:', jsonErr.message);
       }

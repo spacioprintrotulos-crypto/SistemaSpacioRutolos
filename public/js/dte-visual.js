@@ -602,7 +602,7 @@
     }
   }
 
-  // Genera el Base64 DataURI del PDF del DTE en memoria para adjuntarlo
+  // Genera el Base64 puro del PDF del DTE en memoria para adjuntarlo
   async function generarPDFBase64(dte, opciones = {}) {
     if (typeof root.html2pdf !== 'function') return null;
 
@@ -632,9 +632,11 @@
     };
 
     try {
-      const pdfDataUri = await root.html2pdf().set(opt).from(cloneDoc).outputPdf('datauristring');
+      const pdfObj = await root.html2pdf().set(opt).from(cloneDoc).toPdf().get('pdf');
+      const pdfDataUri = pdfObj.output('datauristring');
       staging.remove();
-      return pdfDataUri;
+      const cleanB64 = pdfDataUri && pdfDataUri.includes(',') ? pdfDataUri.split(',')[1].trim() : (pdfDataUri || '').trim();
+      return cleanB64;
     } catch (err) {
       staging.remove();
       console.warn('Error al generar PDF en base64:', err);

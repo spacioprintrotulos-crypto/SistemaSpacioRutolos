@@ -212,11 +212,13 @@ export async function enviarEmailDTE({ DB, env, dte, destinatario, customAsunto,
 
   // Adjunto PDF si está disponible
   if (pdfBase64) {
-    const cleanB64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
-    attachments.push({
-      filename: `${template.tipoNombre.replace(/\s+/g, '_')}_${template.numControl}_${template.receptorNombre.slice(0, 20)}.pdf`,
-      content: cleanB64,
-    });
+    const cleanB64 = String(pdfBase64).includes(',') ? String(pdfBase64).split(',')[1].trim() : String(pdfBase64).trim();
+    if (cleanB64.length > 50) {
+      attachments.push({
+        filename: `${template.tipoNombre.replace(/\s+/g, '_')}_${template.numControl}_${template.receptorNombre.slice(0, 20)}.pdf`.replace(/[^\w\d\.-]/g, '_'),
+        content: cleanB64,
+      });
+    }
   }
 
   try {

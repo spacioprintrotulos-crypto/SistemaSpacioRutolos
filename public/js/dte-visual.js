@@ -158,6 +158,94 @@
 
     return `
     <div class="dte-document" id="dte-printable-area" style="--dte-primary: ${colorPrimario}">
+      <style>
+        .dte-document {
+          --dte-primary: ${colorPrimario};
+          width: 740px !important;
+          max-width: 740px !important;
+          min-height: 980px;
+          background: #ffffff !important;
+          color: #111827 !important;
+          font-family: Arial, Helvetica, sans-serif !important;
+          font-size: 9.2px !important;
+          line-height: 1.3 !important;
+          padding: 16px 18px !important;
+          box-shadow: none !important;
+          border: 1.5px solid #0f172a !important;
+          box-sizing: border-box !important;
+          margin: 0 auto !important;
+          display: flex;
+          flex-direction: column;
+        }
+        .dte-document * { box-sizing: border-box !important; }
+        .dte-header { border-bottom: 1.5px solid #0f172a; padding-bottom: 6px; margin-bottom: 8px; }
+        .dte-header-top { display: grid; grid-template-columns: 150px 1fr 65px; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .dte-logo-area { display: flex; align-items: center; justify-content: flex-start; overflow: hidden; }
+        .dte-logo-img { max-height: 48px; max-width: 145px; object-fit: contain; }
+        .dte-logo-badge { font-size: 13px; font-weight: 900; color: ${colorPrimario}; letter-spacing: -0.3px; text-transform: uppercase; word-break: break-word; line-height: 1.2; }
+        .dte-title-area { text-align: center; }
+        .dte-main-title { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #374151; margin: 0; }
+        .dte-doc-type { font-size: 14px; font-weight: 900; color: ${colorPrimario}; margin-top: 2px; letter-spacing: 0.4px; }
+        .dte-version-badge { text-align: right; font-size: 10.5px; font-weight: 700; color: #4b5563; }
+        .dte-meta-grid { display: grid; grid-template-columns: 1.35fr 105px 1.15fr; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; }
+        .dte-meta-col-left, .dte-meta-col-right { display: flex; flex-direction: column; gap: 2.5px; font-size: 8.8px; }
+        .dte-meta-row { display: flex; gap: 4px; line-height: 1.2; }
+        .dte-meta-row .lbl { color: #4b5563; font-weight: 600; white-space: nowrap; }
+        .dte-meta-row .val { color: #111827; word-break: break-all; }
+        .dte-meta-row .val.bold { font-weight: 700; }
+        .dte-qr-box { display: flex; justify-content: center; align-items: center; }
+        .dte-qr-box svg { width: 92px !important; height: 92px !important; border: 1px solid #cbd5e1; background: #ffffff; padding: 2px; }
+        .dte-parties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+        .dte-party-box { border: 1.5px solid #0f172a; border-radius: 5px; overflow: hidden; }
+        .dte-party-header { background: ${colorPrimario}; color: #ffffff; font-weight: 800; text-align: center; font-size: 9.5px; padding: 2.5px 4px; letter-spacing: 0.8px; }
+        .dte-party-body { padding: 5px 7px; display: flex; flex-direction: column; gap: 2px; font-size: 8.6px; }
+        .party-row { display: flex; gap: 4px; line-height: 1.2; }
+        .party-row-half { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .p-lbl { color: #4b5563; font-weight: 700; white-space: nowrap; }
+        .p-val { color: #111827; word-break: break-word; }
+        .p-val.bold { font-weight: 800; }
+        .dte-section-box { border: 1px solid #0f172a; border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
+        .dte-mini-header { background: #f1f5f9; font-weight: 700; font-size: 8.2px; text-align: center; padding: 2px 4px; border-bottom: 1px solid #cbd5e1; color: #334155; letter-spacing: 0.4px; }
+        .dte-mini-body { padding: 3.5px 6px; font-size: 8.5px; }
+        .dte-mini-body.flex-row { display: flex; justify-content: space-around; gap: 10px; }
+        .dte-table-mini { width: 100%; border-collapse: collapse; font-size: 8.2px; table-layout: fixed; }
+        .dte-table-mini th { background: #f8fafc; padding: 2.5px 4px; border: 1px solid #cbd5e1; font-weight: 700; text-align: center; color: #374151; }
+        .dte-table-mini td { padding: 2.5px 4px; border: 1px solid #e2e8f0; text-align: center; word-break: break-word; }
+        .dte-items-table { width: 100%; border-collapse: collapse; font-size: 8.3px; margin-bottom: 6px; border: 1.5px solid #0f172a; table-layout: fixed; }
+        .dte-items-table th { background: #f1f5f9; color: #0f172a; font-weight: 800; padding: 4px 2px; border: 1px solid #0f172a; text-align: center; font-size: 7.8px; line-height: 1.15; word-break: break-word; }
+        .dte-items-table td { padding: 3px 2px; border: 1px solid #cbd5e1; line-height: 1.2; }
+        .dte-items-table td.col-desc { word-break: break-word; }
+        .dte-items-table .col-num { width: 22px; text-align: center; font-weight: 700; }
+        .dte-items-table .col-cant { width: 34px; text-align: center; }
+        .dte-items-table .col-uni { width: 44px; text-align: center; }
+        .dte-items-table .col-cod { width: 42px; text-align: center; }
+        .dte-items-table .col-desc { text-align: left; }
+        .dte-items-table .col-precio { width: 50px; text-align: right; }
+        .dte-items-table .col-descu { width: 44px; text-align: right; }
+        .dte-items-table .col-nosuj { width: 50px; text-align: right; }
+        .dte-items-table .col-exenta { width: 50px; text-align: right; }
+        .dte-items-table .col-gravada { width: 54px; text-align: right; }
+        .dte-bottom-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 8px; margin-top: auto; padding-top: 4px; }
+        .dte-bottom-left { display: flex; flex-direction: column; gap: 6px; }
+        .dte-legal-box { border: 1px solid #0f172a; border-radius: 5px; padding: 5px 7px; display: flex; flex-direction: column; gap: 3px; font-size: 8.4px; }
+        .legal-row { display: flex; gap: 4px; }
+        .legal-row .lbl { font-weight: 700; color: #4b5563; white-space: nowrap; }
+        .legal-row .val { color: #111827; }
+        .legal-row .val.bold { font-weight: 800; }
+        .dte-signatures-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .sig-box { border: 1px dashed #64748b; border-radius: 4px; padding: 12px 4px 4px 4px; font-size: 7.6px; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; height: 42px; }
+        .sig-title { font-weight: 700; color: #334155; }
+        .sig-doc { color: #64748b; margin-top: 1px; }
+        .dte-bottom-right { display: flex; flex-direction: column; }
+        .dte-summary-table { width: 100%; border-collapse: collapse; font-size: 8.5px; border: 1.5px solid #0f172a; }
+        .dte-summary-table td { padding: 2px 4px; border-bottom: 1px solid #e2e8f0; line-height: 1.2; }
+        .dte-summary-table .col-lbl { text-align: right; color: #334155; font-weight: 600; width: 62%; }
+        .dte-summary-table .col-val { text-align: right; color: #0f172a; font-weight: 600; width: 38%; }
+        .dte-summary-table .col-val.bold { font-weight: 800; }
+        .dte-summary-table .row-total td { background: #f8fafc; border-top: 1.5px solid #0f172a; border-bottom: none; padding: 4px; }
+        .dte-summary-table .grand-total { color: var(--dte-primary); font-size: 11px; font-weight: 900; }
+        .dte-footer { margin-top: 6px; border-top: 1px solid #cbd5e1; padding-top: 4px; display: flex; justify-content: space-between; font-size: 7.8px; color: #64748b; }
+      </style>
       <!-- Encabezado Principal -->
       <div class="dte-header">
         <div class="dte-header-top">
@@ -506,27 +594,27 @@
   // Crea un contenedor aislado para renderizar el PDF de manera limpia, centrada y sin cortes
   function crearStagingElement(dte, opciones) {
     const staging = document.createElement('div');
-    staging.className = 'dte-staging-wrapper';
-    staging.style.position = 'fixed';
-    staging.style.left = '0';
+    staging.className = 'dte-pdf-render-staging';
+    staging.style.position = 'absolute';
     staging.style.top = '0';
+    staging.style.left = '0';
     staging.style.width = '750px';
+    staging.style.minWidth = '750px';
+    staging.style.maxWidth = '750px';
     staging.style.background = '#ffffff';
     staging.style.color = '#000000';
-    staging.style.zIndex = '9999999';
-    staging.style.margin = '0';
-    staging.style.padding = '0';
+    staging.style.zIndex = '-9999';
+    staging.style.opacity = '0';
+    staging.style.pointerEvents = 'none';
     staging.innerHTML = renderDteHtml(dte, opciones);
     document.body.appendChild(staging);
 
-    const docEl = staging.querySelector('.dte-document');
-    if (docEl) {
-      docEl.style.boxShadow = 'none';
-      docEl.style.border = '1.5px solid #000000';
-      docEl.style.margin = '0 auto';
-      docEl.style.width = '740px';
-      docEl.style.maxWidth = '740px';
-    }
+    const docEl = staging.querySelector('.dte-document') || staging;
+    docEl.style.boxShadow = 'none';
+    docEl.style.border = '1.5px solid #000000';
+    docEl.style.margin = '0 auto';
+    docEl.style.width = '740px';
+    docEl.style.maxWidth = '740px';
 
     return staging;
   }
@@ -545,18 +633,17 @@
       const cloneDoc = staging.querySelector('.dte-document') || staging;
 
       const opt = {
-        margin: [5, 5, 5, 5],
+        margin: [6, 6, 6, 6],
         filename: `${finalFileName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
           scale: 2,
           useCORS: true,
           backgroundColor: '#ffffff',
-          scrollX: 0,
           scrollY: 0,
-          x: 0,
-          y: 0,
-          width: 750
+          scrollX: 0,
+          width: 750,
+          windowWidth: 750
         },
         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
       };
@@ -584,17 +671,16 @@
     const cloneDoc = staging.querySelector('.dte-document') || staging;
 
     const opt = {
-      margin: [5, 5, 5, 5],
+      margin: [6, 6, 6, 6],
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        scrollX: 0,
         scrollY: 0,
-        x: 0,
-        y: 0,
-        width: 750
+        scrollX: 0,
+        width: 750,
+        windowWidth: 750
       },
       jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
     };

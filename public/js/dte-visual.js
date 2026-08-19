@@ -764,7 +764,7 @@
     });
   }
 
-  // ---------- ENVÍO POR WHATSAPP (+503 7255 4916) ----------
+  // ---------- ENVÍO POR WHATSAPP (GATEWAY DIRECTO O WEB) ----------
   function enviarWhatsAppDTE(dte, opciones = {}) {
     const ident = dte.identificacion || {};
     const receptor = dte.receptor || {};
@@ -776,12 +776,11 @@
     const fechaEmi = ident.fecEmi || new Date().toISOString().slice(0, 10);
     const totalPagar = Number(resumen.totalPagar !== undefined ? resumen.totalPagar : (resumen.montoTotalOperacion || 0)).toFixed(2);
     const receptorNombre = receptor.nombre || 'CLIENTE';
+    const receptorTel = receptor.telefono || receptor.celular || '50372554916';
     const ambiente = ident.ambiente || '00';
 
     const clienteLimpio = sanitizarNombreArchivo(receptorNombre);
     const baseFileName = `${tipoNom.replace(/\s+/g, '_')}_${numControl}_${clienteLimpio}`;
-
-    const numWhatsApp = '50372554916'; // +503 7255 4916
     const urlConsulta = `https://admin.factura.gob.sv/consultaPublica?ambiente=${ambiente}&codGen=${codGen}&fechaEmi=${fechaEmi}`;
 
     const mensajeWA = 
@@ -801,23 +800,113 @@ Se ha generado su Documento Tributario Electrónico con la siguiente informació
 🔍 *Consulta Pública Oficial:*
 ${urlConsulta}
 
-📎 _Adjuntamos a continuación su Comprobante Oficial en formato PDF y archivo JSON._
+📎 _Adjuntamos a continuación su Comprobante Oficial en formato PDF y archivo JSON firmado._
 
 © 2026 Spacio Rotulos. - Todos los derechos reservados -`;
 
-    // 1. Descargamos automáticamente el PDF y JSON para que estén listos para adjuntar
-    descargarDTECompleto(dte, opciones, baseFileName);
-    setTimeout(() => {
+    const modalId = 'modal-wa-send-' + Date.now();
+    const modalHtml = `
+      <div class="modal-backdrop" id="${modalId}" onclick="if(event.target===this)this.remove()">
+        <div class="modal" style="max-width:580px;padding:24px">
+          <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="margin:0;display:flex;align-items:center;gap:8px">💬 Enviar Comprobante por WhatsApp</h3>
+            <button class="btn btn-ghost" style="padding:4px 8px" onclick="document.getElementById('${modalId}').remove()">✕</button>
+          </div>
+
+          <div class="form-field">
+            <label>Número de WhatsApp (Destinatario):</label>
+            <div class="flex" style="gap:8px">
+              <input id="${modalId}-phone" value="${esc(receptorTel)}" style="flex:1;font-weight:700" placeholder="Ej: 50372554916 o 72554916">
+              ${receptorTel !== '50372554916' ? `<button class="btn btn-secundario btn-xs" type="button" onclick="document.getElementById('${modalId}-phone').value='50372554916'">Usar mi teléfono (+503 7255 4916)</button>` : ''}
+            </div>
+            <span class="small text-gris" style="margin-top:4px;display:block">Puedes ingresar números de 8 dígitos de El Salvador o con código internacional (ej. 50372554916).</span>
+          </div>
+
+          <div class="form-field">
+            <label>Mensaje:</label>
+            <textarea id="${modalId}-msg" rows="7" style="font-family:monospace;font-size:12px;line-height:1.4">${esc(mensajeWA)}</textarea>
+          </div>
+
+          <div class="form-field">
+            <label>Archivos que se enviarán adjuntos:</label>
+            <div class="flex" style="gap:10px;margin-top:4px">
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:6px;color:#1e40af">
+                📄 <b>${esc(baseFileName)}.pdf</b>
+              </div>
+              <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:6px;color:#334155">
+                { } <b>${esc(baseFileName)}.json</b>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions" style="justify-content:space-between;margin-top:20px;flex-wrap:wrap;gap:8px">
+            <div class="flex" style="gap:8px;flex-wrap:wrap">
+              <button class="btn btn-whatsapp" id="${modalId}-btn-gateway" style="display:inline-flex;align-items:center;gap:6px">
+                💬 Enviar Automático (Gateway)
+              </button>
+              <button class="btn btn-secundario" id="${modalId}-btn-web" style="display:inline-flex;align-items:center;gap:6px">
+                📱 Abrir en WhatsApp Web
+              </button>
+            </div>
+            <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modalEl = document.getElementById(modalId);
+    const btnGateway = document.getElementById(`${modalId}-btn-gateway`);
+    const btnWeb = document.getElementById(`${modalId}-btn-web`);
+
+    // Envío desatendido directo mediante el Gateway en Railway
+    btnGateway.addEventListener('click', async () => {
+      const phoneInput = document.getElementById(`${modalId}-phone`).value.trim();
+      const msgInput = document.getElementById(`${modalId}-msg`).value.trim();
+      if (!phoneInput) {
+        return root.toast ? root.toast('Ingrese un número de teléfono válido', 'error') : alert('Ingrese un número');
+      }
+
+      btnGateway.disabled = true;
+      btnGateway.textContent = 'Enviando WhatsApp...';
+
+      try {
+        if (root.API && typeof root.API.enviarWhatsAppGateway === 'function') {
+          const resp = await root.API.enviarWhatsAppGateway({
+            dteObj: dte,
+            phone: phoneInput,
+            customMessage: msgInput,
+          });
+          if (root.toast) root.toast(resp.message || `✅ Mensaje de WhatsApp enviado con éxito al +${resp.phone || phoneInput}`, 'success');
+          modalEl.remove();
+        } else {
+          throw new Error('API cliente no disponible');
+        }
+      } catch (err) {
+        if (root.toast) {
+          root.toast(err.error || 'Error al enviar por Gateway. Verifique que el Gateway esté conectado.', 'error');
+        }
+      } finally {
+        btnGateway.disabled = false;
+        btnGateway.textContent = '💬 Enviar Automático (Gateway)';
+      }
+    });
+
+    // Fallback: abrir en WhatsApp Web descargando los archivos
+    btnWeb.addEventListener('click', () => {
+      const phoneInput = document.getElementById(`${modalId}-phone`).value.trim();
+      const msgInput = document.getElementById(`${modalId}-msg`).value.trim();
+      let cleanPhone = phoneInput.replace(/\D/g, '');
+      if (cleanPhone.length === 8) cleanPhone = '503' + cleanPhone;
+
+      const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msgInput)}`;
+      window.open(waUrl, '_blank');
+      descargarDTECompleto(dte, opciones, baseFileName);
       descargarDTEJSONDirecto(dte, baseFileName);
-    }, 800);
-
-    if (root.toast) {
-      root.toast('Abriendo WhatsApp y preparando archivos PDF/JSON...', 'success');
-    }
-
-    // 2. Abrimos la URL de WhatsApp
-    const waUrl = `https://api.whatsapp.com/send?phone=${numWhatsApp}&text=${encodeURIComponent(mensajeWA)}`;
-    window.open(waUrl, '_blank');
+      if (root.toast) root.toast('Descargando archivos PDF y JSON para adjuntar en WhatsApp Web', 'info');
+      modalEl.remove();
+    });
   }
 
   function enviarEmailPorModalId(modalId) {

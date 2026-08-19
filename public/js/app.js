@@ -114,43 +114,91 @@ async function logout(e) {
   location.hash = '#/login';
 }
 
-// ---------- VISTA: Login ----------
+// ---------- VISTA: Login (Estilo Minimalista) ----------
 function renderLogin(app) {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   app.innerHTML = `
-  <div class="login-page">
-    <div class="login-left">
-      <div class="login-left-content">
-        <div class="login-brand-mark">
-          <div class="login-logo-badge" style="display:flex;align-items:center;justify-content:center;width:58px;height:58px;background:#ffffff;border-radius:16px;box-shadow:0 8px 22px rgba(0,0,0,.22);padding:6px">
-            <img src="img/logo.svg" alt="Logo" style="width:100%;height:100%;object-fit:contain;">
-          </div>
-          <div class="login-brand-name">SISTEMA FAC2026</div>
+  <div class="login-minimal-page">
+    <header class="login-minimal-nav">
+      <div class="login-nav-brand">
+        <div class="login-nav-logo">
+          <img src="img/logo.svg" alt="Logo">
         </div>
-        <h1>Facturación Electrónica DTE</h1>
-        <p>Emite Facturas, Comprobantes de Crédito Fiscal y Notas de Crédito conectado al Ministerio de Hacienda de El Salvador.</p>
+        <span class="login-nav-title">SISTEMA FAC2026</span>
       </div>
-    </div>
-    <div class="login-right">
-      <button type="button" class="btn-theme-toggle login-theme-btn" onclick="toggleTheme()" title="${isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}" aria-label="Cambiar tema">
-        ${getThemeIcon()}
-      </button>
-      <div class="login-card-wrapper">
-        <div class="login-card">
-          <h2>Iniciar sesión</h2>
-          <p class="login-sub">Ingresa tus credenciales para continuar</p>
+      <nav class="login-nav-links">
+        <span class="nav-item active">Facturación DTE</span>
+        <span class="nav-item">Ministerio de Hacienda</span>
+        <span class="nav-item">El Salvador</span>
+      </nav>
+      <div class="login-nav-actions">
+        <button type="button" class="btn-theme-toggle login-minimal-theme-btn" onclick="toggleTheme()" title="${isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}" aria-label="Cambiar tema">
+          ${getThemeIcon()}
+        </button>
+        <span class="login-status-pill">
+          <span class="status-dot"></span> Online
+        </span>
+      </div>
+    </header>
+
+    <div class="login-minimal-main">
+      <div class="login-minimal-grid">
+        <div class="login-minimal-form-side">
+          <div class="login-tabs-header">
+            <span class="login-tab">Iniciar sesión</span>
+            <span class="login-tab-badge">DTE v1.0</span>
+          </div>
+
+          <p class="login-minimal-desc">Acceso seguro para emisión de Facturación Electrónica DTE.</p>
+
           <div id="login-alert"></div>
-          <div class="form-field">
-            <label>Usuario</label>
-            <input id="login-user" type="text" autocomplete="username" placeholder="Tu usuario">
+
+          <form class="login-minimal-form" onsubmit="return false;">
+            <div class="minimal-field">
+              <div class="field-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <input id="login-user" type="text" autocomplete="username" placeholder="Usuario o correo" required>
+            </div>
+
+            <div class="minimal-field">
+              <div class="field-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <input id="login-pass" type="password" autocomplete="current-password" placeholder="Contraseña de acceso" required>
+            </div>
+
+            <div class="login-minimal-actions">
+              <span class="login-environment-tag">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Ambiente SV
+              </span>
+              <button class="btn-minimal-submit" id="login-btn">
+                <span>Entrar</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </button>
+            </div>
+          </form>
+
+          <div class="login-minimal-credits">
+            <span>by <strong>Jovas-Motion</strong> Designer &amp; Desarrollo.</span>
           </div>
-          <div class="form-field">
-            <label>Contraseña</label>
-            <input id="login-pass" type="password" autocomplete="current-password" placeholder="Tu contraseña">
-          </div>
-          <button class="btn btn-primary" id="login-btn">Entrar</button>
         </div>
-        <div class="login-credits">by Jovas-Motion Designer &amp; Desarrollo.</div>
+
+        <div class="login-minimal-visual-side">
+          <div class="visual-arc-bg visual-arc-1"></div>
+          <div class="visual-arc-bg visual-arc-2"></div>
+          <div class="visual-arc-bg visual-arc-3"></div>
+          <div class="visual-card-frame">
+            <img src="img/login-desk.jpg" alt="Escritorio de Facturación" class="visual-illustration-img">
+          </div>
+        </div>
       </div>
     </div>
   </div>`;
@@ -160,7 +208,7 @@ function renderLogin(app) {
     const pass = $('#login-pass').value;
     if (!user || !pass) { $('#login-alert').innerHTML = '<div class="alert alert-error">Usuario y contraseña son requeridos</div>'; return; }
     const btn = $('#login-btn');
-    btn.disabled = true; btn.textContent = 'Entrando...';
+    btn.disabled = true; btn.innerHTML = '<span>Entrando...</span>';
     try {
       const r = await API.login(user, pass);
       state.usuario = r.usuario;
@@ -168,11 +216,13 @@ function renderLogin(app) {
     } catch (e) {
       $('#login-alert').innerHTML = `<div class="alert alert-error">${esc(e.error || 'No se pudo iniciar sesión')}</div>`;
     } finally {
-      btn.disabled = false; btn.textContent = 'Entrar';
+      btn.disabled = false;
+      btn.innerHTML = `<span>Entrar</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
     }
   };
   $('#login-btn').addEventListener('click', entrar);
   $('#login-pass').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') entrar(); });
+  $('#login-user').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') $('#login-pass').focus(); });
 }
 
 // ---------- VISTA: Menú ----------

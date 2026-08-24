@@ -60,4 +60,8 @@ const f2 = buildFactura({
 });
 console.assert(f2.dte.receptor.codActividad === '73101', 'Factura alias resolved to 73101');
 
+// Case 8: Magica Sorpresa SV alias 96099 -> 82990
+const r8 = normalizarActividad('96099', 'Servicios n.c.p.');
+console.assert(r8.codActividad === '82990', '96099 should resolve to 82990');
+
 console.log('✅ ALL ACTIVIDAD TESTS PASSED 100%');

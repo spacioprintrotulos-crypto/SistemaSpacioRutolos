@@ -62,6 +62,9 @@ const ACTIVIDAD_ALIASES = {
   '46100': { cod: '46101', desc: 'Actividades de transacciones comerciales de distribuidores de mercancías' },
   '45200': { cod: '45201', desc: 'Mantenimiento y reparación mecánica de vehículos automotores' },
   '62000': { cod: '62010', desc: 'Actividades de programación informática' },
+  '96099': { cod: '82990', desc: 'Otras actividades de servicios de apoyo a las empresas n.c.p.' },
+  '96090': { cod: '82990', desc: 'Otras actividades de servicios de apoyo a las empresas n.c.p.' },
+  '96000': { cod: '82990', desc: 'Otras actividades de servicios de apoyo a las empresas n.c.p.' },
 };
 
 export function normalizarActividad(rawCod, rawDesc) {

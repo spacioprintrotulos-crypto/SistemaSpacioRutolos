@@ -326,14 +326,122 @@ function selMunicipios(depto, valor) {
     ${lista.map((m) => `<option value="${m.codigo}" ${m.codigo === valor ? 'selected' : ''}>${esc(m.nombre)}</option>`).join('')}
   </select>`;
 }
-function selActividades(valor) {
-  const dl = `<datalist id="dl-actividades">${state.cat.actividades.slice(0, 300).map((a) => `<option value="${esc(a.codigo)}">${esc(a.descripcion)}</option>`).join('')}</datalist>`;
-  return dl;
+const ACTIVIDAD_ALIASES = {
+  '73100': { cod: '73101', desc: 'Agencias de publicidad' },
+  '74100': { cod: '74101', desc: 'Actividades de diseñadores gráficos' },
+  '47110': { cod: '47111', desc: 'Comercio al por menor en supermercados y almacenes surtidos con predominio de alimentos' },
+  '47190': { cod: '47191', desc: 'Comercio al por menor de diversos artículos en almacenes' },
+  '70200': { cod: '70201', desc: 'Servicios de asesoría y consultoría en gestión empresarial' },
+  '69200': { cod: '69201', desc: 'Actividades de contabilidad realizadas en despachos y oficinas contables' },
+  '56100': { cod: '56101', desc: 'Restaurantes y servicio móvil de comidas' },
+  '46100': { cod: '46101', desc: 'Actividades de transacciones comerciales de distribuidores de mercancías' },
+  '45200': { cod: '45201', desc: 'Mantenimiento y reparación mecánica de vehículos automotores' },
+  '62000': { cod: '62010', desc: 'Actividades de programación informática' },
+};
+
+function selActividades() {
+  const lista = state.cat?.actividades || [];
+  return `<datalist id="dl-actividades">${lista.map((a) => `<option value="${esc(a.codigo)}">${esc(a.codigo)} — ${esc(a.descripcion)}</option>`).join('')}</datalist>`;
 }
+
 function nombreActividad(cod) {
-  const a = state.cat.actividades.find((x) => x.codigo === cod);
+  if (!cod) return '';
+  let c = String(cod).trim();
+  if (/^\d{4}$/.test(c)) c = c.padStart(5, '0');
+  if (ACTIVIDAD_ALIASES[c]) return ACTIVIDAD_ALIASES[c].desc;
+  const a = state.cat?.actividades?.find((x) => x.codigo === c);
   return a ? a.descripcion : '';
 }
+
+function resolverActividad(valor) {
+  if (!valor) return { codigo: '', descripcion: '' };
+  let v = String(valor).trim();
+  const m = v.match(/^(\d{4,6})\s*[-—–:]\s*(.*)$/);
+  if (m) {
+    let code = m[1];
+    if (code.length === 4) code = code.padStart(5, '0');
+    if (ACTIVIDAD_ALIASES[code]) code = ACTIVIDAD_ALIASES[code].cod;
+    const desc = m[2].trim() || nombreActividad(code);
+    return { codigo: code, descripcion: desc };
+  }
+  if (/^\d{4,6}$/.test(v)) {
+    let code = v;
+    if (code.length === 4) code = code.padStart(5, '0');
+    if (ACTIVIDAD_ALIASES[code]) code = ACTIVIDAD_ALIASES[code].cod;
+    return { codigo: code, descripcion: nombreActividad(code) };
+  }
+  const term = v.toLowerCase();
+  const match = state.cat?.actividades?.find((a) => a.descripcion.toLowerCase().includes(term) || a.codigo === term);
+  if (match) {
+    return { codigo: match.codigo, descripcion: match.descripcion };
+  }
+  return { codigo: v, descripcion: '' };
+}
+
+window.modalBuscarActividad = (callback) => {
+  const list = state.cat?.actividades || [];
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-backdrop modal-actividades-backdrop" onclick="if(event.target===this)this.remove()">
+      <div class="modal modal-lg" style="max-width:700px;width:95%;max-height:85vh;display:flex;flex-direction:column;padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;display:flex;align-items:center;gap:8px">
+            <span style="font-size:1.2rem">🏛️</span> Actividades Económicas (CAT-019)
+          </h3>
+          <button class="btn btn-ghost btn-xs" type="button" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+        </div>
+        <p class="text-gris small" style="margin-top:0;margin-bottom:14px">
+          Busque en los 990 códigos oficiales del Ministerio de Hacienda por número o palabra clave.
+        </p>
+        <div style="margin-bottom:12px">
+          <input id="txt-buscar-act" placeholder="🔍 Escriba código o texto (ej. 73101, publicidad, transporte, almacén, restaurante)..." style="width:100%;font-size:14px;padding:10px 14px;border-radius:12px">
+        </div>
+        <div id="lista-actividades-resultado" style="flex:1;overflow-y:auto;max-height:380px;border:1px solid var(--borde);border-radius:14px;padding:6px;background:var(--fondo-card)">
+        </div>
+        <div class="modal-actions" style="margin-top:14px;display:flex;justify-content:flex-end">
+          <button class="btn btn-secundario" type="button" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  const m = document.body.lastElementChild;
+  const txt = $('#txt-buscar-act', m);
+  const box = $('#lista-actividades-resultado', m);
+
+  const renderList = (q) => {
+    const query = (q || '').trim().toLowerCase();
+    const filtrados = query
+      ? list.filter((a) => a.codigo.includes(query) || a.descripcion.toLowerCase().includes(query))
+      : list.slice(0, 80);
+
+    box.innerHTML = filtrados.length
+      ? filtrados.map((a) => `
+        <div class="item-actividad-row" style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--borde);cursor:pointer;border-radius:8px;transition:all 0.15s;gap:12px" data-cod="${esc(a.codigo)}" data-desc="${esc(a.descripcion)}">
+          <div style="flex:1">
+            <span class="badge-cod" style="font-family:monospace;font-weight:700;background:rgba(13,71,201,0.1);color:var(--azul,#0d47c9);padding:2px 7px;border-radius:6px;margin-right:8px;font-size:12px">${esc(a.codigo)}</span>
+            <span style="font-size:13px;font-weight:500">${esc(a.descripcion)}</span>
+          </div>
+          <button class="btn btn-verde btn-xs" type="button" style="white-space:nowrap;padding:4px 10px">Elegir</button>
+        </div>
+      `).join('')
+      : '<div style="padding:24px;text-align:center;color:var(--texto-gris)">No se encontraron actividades para esa búsqueda.</div>';
+
+    $$('.item-actividad-row', box).forEach((row) => {
+      row.addEventListener('click', () => {
+        const cod = row.dataset.cod;
+        const desc = row.dataset.desc;
+        if (typeof callback === 'function') callback(cod, desc);
+        m.remove();
+      });
+      row.addEventListener('mouseenter', () => { row.style.background = 'rgba(5,150,105,0.08)'; });
+      row.addEventListener('mouseleave', () => { row.style.background = 'transparent'; });
+    });
+  };
+
+  txt.addEventListener('input', (e) => renderList(e.target.value));
+  renderList('');
+  setTimeout(() => txt?.focus(), 60);
+};
 
 // Reasigna municipios al cambiar departamento
 function bindCascada(contenedor) {
@@ -570,8 +678,15 @@ function renderReceptorForm(area) {
       <div class="form-field"><label>Número de documento</label><input name="num_documento"></div>
       <div class="form-field"><label>NRC</label><input name="nrc"></div>
       <div class="form-field" style="grid-column:1/-1"><label>Nombre / Razón social</label><input name="nombre"></div>
-      <div class="form-field"><label>Código de actividad (CAT-019)</label><input name="cod_actividad" list="dl-actividades">${selActividades()}</div>
-      <div class="form-field"><label>Descripción de actividad</label><input name="desc_actividad"></div>
+      <div class="form-field">
+        <label>Código actividad (CAT-019)</label>
+        <div style="display:flex;gap:6px">
+          <input name="cod_actividad" list="dl-actividades" placeholder="Ej. 73101" style="flex:1">
+          <button type="button" class="btn btn-secundario btn-xs" id="btn-buscar-act-receptor" title="Buscar en catálogo">🔍</button>
+        </div>
+        ${selActividades()}
+      </div>
+      <div class="form-field"><label>Descripción de actividad / Giro</label><input name="desc_actividad" placeholder="Giro o actividad"></div>
       <div class="form-field"><label>Nombre comercial</label><input name="nombre_comercial"></div>
       <div class="form-field"><label>Departamento</label>${selDeptos('municipio')}</div>
       <div class="form-field"><label>Municipio / Distrito</label>${selMunicipios('')}</div>
@@ -579,6 +694,31 @@ function renderReceptorForm(area) {
       <div class="form-field"><label>Teléfono</label><input name="telefono"></div>
       <div class="form-field"><label>Correo</label><input name="correo" type="email"></div>
     </div>`;
+
+  const form = $('#receptor-form', area);
+  const recCod = form.querySelector('[name="cod_actividad"]');
+  const recDesc = form.querySelector('[name="desc_actividad"]');
+
+  if (recCod && recDesc) {
+    recCod.addEventListener('input', () => {
+      const res = resolverActividad(recCod.value);
+      if (res.codigo && res.codigo !== recCod.value && /^\d{5,6}$/.test(res.codigo)) {
+        recCod.value = res.codigo;
+      }
+      if (res.descripcion) recDesc.value = res.descripcion;
+    });
+    recCod.addEventListener('change', () => {
+      const res = resolverActividad(recCod.value);
+      if (res.codigo) recCod.value = res.codigo;
+      if (res.descripcion) recDesc.value = res.descripcion;
+    });
+    form.querySelector('#btn-buscar-act-receptor')?.addEventListener('click', () => {
+      window.modalBuscarActividad((cod, desc) => {
+        recCod.value = cod;
+        recDesc.value = desc;
+      });
+    });
+  }
 }
 
 function fillReceptor(c) {
@@ -921,7 +1061,7 @@ window.modalCliente = (id) => {
   const c = id ? clientesCache.find((x) => x.id === id) : {};
   document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
-      <div class="modal">
+      <div class="modal modal-lg" style="max-width:760px">
         <h3>${id ? 'Editar cliente' : 'Nuevo cliente'}</h3>
         <div class="grid-3">
           <div class="form-field"><label>Tipo de documento</label><select id="c-tipo">${state.cat.tipoDocumento.map((t) => `<option value="${t.codigo}" ${t.codigo === (c.tipo_documento || '13') ? 'selected' : ''}>${esc(t.nombre)}</option>`).join('')}</select></div>
@@ -929,7 +1069,15 @@ window.modalCliente = (id) => {
           <div class="form-field"><label>NRC</label><input id="c-nrc" value="${esc(c.nrc || '')}"></div>
           <div class="form-field" style="grid-column:1/-1"><label>Nombre / Razón social</label><input id="c-nombre" value="${esc(c.nombre || '')}"></div>
           <div class="form-field"><label>Nombre comercial</label><input id="c-ncomercial" value="${esc(c.nombre_comercial || '')}"></div>
-          <div class="form-field"><label>Código actividad</label><input id="c-codact" list="dl-actividades" value="${esc(c.cod_actividad || '')}">${selActividades()}</div>
+          <div class="form-field">
+            <label>Código actividad (CAT-019)</label>
+            <div style="display:flex;gap:6px">
+              <input id="c-codact" list="dl-actividades" value="${esc(c.cod_actividad || '')}" placeholder="Ej. 73101" style="flex:1">
+              <button type="button" class="btn btn-secundario btn-xs" id="btn-buscar-act-cliente" title="Buscar en catálogo">🔍</button>
+            </div>
+            ${selActividades()}
+          </div>
+          <div class="form-field"><label>Giro / Actividad económica</label><input id="c-descact" value="${esc(c.desc_actividad || nombreActividad(c.cod_actividad) || '')}" placeholder="Descripción de actividad"></div>
           <div class="form-field"><label>Departamento</label><div id="c-depto">${selDeptos('c-mun', c.departamento)}</div></div>
           <div class="form-field"><label>Municipio</label><div id="c-mun">${selMunicipios(c.departamento, c.municipio)}</div></div>
           <div class="form-field"><label>Complemento</label><input id="c-comp" value="${esc(c.complemento || '')}"></div>
@@ -946,18 +1094,43 @@ window.modalCliente = (id) => {
   const modal = document.body.lastElementChild;
   const deptoSel = modal.querySelector('.depto-select');
   deptoSel.addEventListener('change', () => {
-    $('#c-mun').innerHTML = selMunicipios(deptoSel.value, '');
+    $('#c-mun', modal).innerHTML = selMunicipios(deptoSel.value, '');
+  });
+
+  const codInput = $('#c-codact', modal);
+  const descInput = $('#c-descact', modal);
+  codInput.addEventListener('input', () => {
+    const res = resolverActividad(codInput.value);
+    if (res.codigo && res.codigo !== codInput.value && /^\d{5,6}$/.test(res.codigo)) {
+      codInput.value = res.codigo;
+    }
+    if (res.descripcion) descInput.value = res.descripcion;
+  });
+  codInput.addEventListener('change', () => {
+    const res = resolverActividad(codInput.value);
+    if (res.codigo) codInput.value = res.codigo;
+    if (res.descripcion) descInput.value = res.descripcion;
+  });
+  $('#btn-buscar-act-cliente', modal)?.addEventListener('click', () => {
+    window.modalBuscarActividad((cod, desc) => {
+      codInput.value = cod;
+      descInput.value = desc;
+    });
   });
 
   $('#c-guardar', modal).addEventListener('click', async () => {
+    const actRes = resolverActividad($('#c-codact', modal).value.trim());
+    const finalCod = actRes.codigo || $('#c-codact', modal).value.trim();
+    const finalDesc = $('#c-descact', modal).value.trim() || actRes.descripcion || nombreActividad(finalCod);
+
     const datos = {
       tipo_documento: $('#c-tipo', modal).value,
       num_documento: $('#c-num', modal).value.trim(),
       nrc: $('#c-nrc', modal).value.trim(),
       nombre: $('#c-nombre', modal).value.trim(),
       nombre_comercial: $('#c-ncomercial', modal).value.trim(),
-      cod_actividad: $('#c-codact', modal).value.trim(),
-      desc_actividad: nombreActividad($('#c-codact', modal).value.trim()),
+      cod_actividad: finalCod,
+      desc_actividad: finalDesc,
       departamento: deptoSel.value,
       municipio: $('#c-mun', modal).querySelector('[name="municipio"]')?.value || '',
       complemento: $('#c-comp', modal).value.trim(),
@@ -1839,7 +2012,14 @@ function pintarConfig(r) {
         <div class="form-field"><label>Tipo establecimiento</label><select id="e-tipoest">${state.cat.tipoEstablecimiento.map((t) => `<option value="${t.codigo}" ${t.codigo === (emisor?.tipo_establecimiento || '01') ? 'selected' : ''}>${esc(t.nombre)}</option>`).join('')}</select></div>
         <div class="form-field" style="grid-column:1/-1"><label>Nombre / Razón social</label><input id="e-nombre" value="${esc(emisor?.nombre || '')}"></div>
         <div class="form-field"><label>Nombre comercial</label><input id="e-ncomercial" value="${esc(emisor?.nombre_comercial || '')}"></div>
-        <div class="form-field"><label>Código actividad (CAT-019)</label><input id="e-codact" list="dl-actividades" value="${esc(emisor?.cod_actividad || '')}">${selActividades()}</div>
+        <div class="form-field">
+          <label>Código actividad (CAT-019)</label>
+          <div style="display:flex;gap:6px">
+            <input id="e-codact" list="dl-actividades" value="${esc(emisor?.cod_actividad || '')}" placeholder="Ej. 73101" style="flex:1">
+            <button type="button" class="btn btn-secundario btn-xs" id="btn-buscar-act-emisor" title="Buscar en catálogo">🔍</button>
+          </div>
+          ${selActividades()}
+        </div>
         <div class="form-field"><label>Departamento</label><div id="e-depto">${selDeptos('e-mun', emisor?.departamento)}</div></div>
         <div class="form-field"><label>Municipio</label><div id="e-mun">${selMunicipios(emisor?.departamento, emisor?.municipio)}</div></div>
         <div class="form-field"><label>Complemento dirección</label><input id="e-comp" value="${esc(emisor?.complemento || '')}"></div>
@@ -2112,6 +2292,13 @@ function pintarConfig(r) {
   // Cascada departamento→municipio emisor
   const eDepto = $('#e-depto').querySelector('.depto-select');
   eDepto.addEventListener('change', () => { $('#e-mun').innerHTML = selMunicipios(eDepto.value, ''); });
+
+  $('#btn-buscar-act-emisor', app)?.addEventListener('click', () => {
+    window.modalBuscarActividad((cod, desc) => {
+      const eCod = $('#e-codact');
+      if (eCod) eCod.value = cod;
+    });
+  });
 
   // Guardar emisor
   $('#btn-guardar-emisor').addEventListener('click', async () => {

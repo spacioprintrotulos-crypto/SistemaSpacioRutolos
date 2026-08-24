@@ -50,13 +50,54 @@ function buildIdentificacion(tipoDte, ambiente, emisor, correlativo) {
   };
 }
 
+// Catálogo y alias comunes para resolver códigos genéricos a subcódigos oficiales CAT-019
+const ACTIVIDAD_ALIASES = {
+  '73100': { cod: '73101', desc: 'Agencias de publicidad' },
+  '74100': { cod: '74101', desc: 'Actividades de diseñadores gráficos' },
+  '47110': { cod: '47111', desc: 'Comercio al por menor en supermercados y almacenes surtidos con predominio de alimentos' },
+  '47190': { cod: '47191', desc: 'Comercio al por menor de diversos artículos en almacenes' },
+  '70200': { cod: '70201', desc: 'Servicios de asesoría y consultoría en gestión empresarial' },
+  '69200': { cod: '69201', desc: 'Actividades de contabilidad realizadas en despachos y oficinas contables' },
+  '56100': { cod: '56101', desc: 'Restaurantes y servicio móvil de comidas' },
+  '46100': { cod: '46101', desc: 'Actividades de transacciones comerciales de distribuidores de mercancías' },
+  '45200': { cod: '45201', desc: 'Mantenimiento y reparación mecánica de vehículos automotores' },
+  '62000': { cod: '62010', desc: 'Actividades de programación informática' },
+};
+
+export function normalizarActividad(rawCod, rawDesc) {
+  let cod = rawCod ? String(rawCod).trim() : '';
+  let desc = rawDesc ? String(rawDesc).trim() : '';
+
+  if (/\d/.test(cod)) {
+    const numSolo = cod.replace(/\D/g, '');
+    if (numSolo.length === 4) {
+      cod = numSolo.padStart(5, '0');
+    } else if (numSolo.length >= 5) {
+      cod = numSolo.slice(0, 6);
+    }
+  }
+
+  if (ACTIVIDAD_ALIASES[cod]) {
+    const alias = ACTIVIDAD_ALIASES[cod];
+    cod = alias.cod;
+    if (!desc || desc === '-') desc = alias.desc;
+  }
+
+  const esValido = /^\d{5,6}$/.test(cod);
+  return {
+    codActividad: esValido ? cod : null,
+    descActividad: esValido ? (desc || 'Actividad económica') : null,
+  };
+}
+
 function buildEmisor(e, conCodEstable = true) {
+  const act = normalizarActividad(e.cod_actividad, e.desc_actividad);
   const emisor = {
     nit: digits(e.nit),
     nrc: digits(e.nrc),
     nombre: e.nombre,
-    codActividad: e.cod_actividad,
-    descActividad: e.desc_actividad,
+    codActividad: act.codActividad || e.cod_actividad,
+    descActividad: act.descActividad || e.desc_actividad,
     nombreComercial: e.nombre_comercial,
     tipoEstablecimiento: e.tipo_establecimiento || '01',
     direccion: {
@@ -202,9 +243,7 @@ export function buildFactura({ emisor, ambiente, correlativo, receptor, items, c
     numPagoElectronico: null,
   };
 
-  const rawCodAct = receptor.cod_actividad ? String(receptor.cod_actividad).trim() : '';
-  const validCodAct = (/^\d{5,6}$/.test(rawCodAct)) ? rawCodAct : null;
-  const validDescAct = validCodAct ? (receptor.desc_actividad || null) : null;
+  const act = normalizarActividad(receptor.cod_actividad, receptor.desc_actividad);
 
   const dte = {
     identificacion,
@@ -215,8 +254,8 @@ export function buildFactura({ emisor, ambiente, correlativo, receptor, items, c
       numDocumento: digits(receptor.num_documento) || null,
       nrc: null,
       nombre: receptor.nombre,
-      codActividad: validCodAct,
-      descActividad: validDescAct,
+      codActividad: act.codActividad,
+      descActividad: act.descActividad,
       direccion: buildDireccion(receptor),
       telefono: receptor.telefono || null,
       correo: receptor.correo || null,
@@ -263,6 +302,8 @@ export function buildCCF({ emisor, ambiente, correlativo, receptor, items, condi
     numPagoElectronico: null,
   };
 
+  const act = normalizarActividad(receptor.cod_actividad, receptor.desc_actividad);
+
   const dte = {
     identificacion,
     documentoRelacionado: null,
@@ -271,8 +312,8 @@ export function buildCCF({ emisor, ambiente, correlativo, receptor, items, condi
       nit: digits(receptor.num_documento),
       nrc: digits(receptor.nrc) || null,
       nombre: receptor.nombre,
-      codActividad: receptor.cod_actividad,
-      descActividad: receptor.desc_actividad,
+      codActividad: act.codActividad || '73101',
+      descActividad: act.descActividad || 'Publicidad y Servicios Comerciales',
       nombreComercial: receptor.nombre_comercial || receptor.nombre,
       direccion: buildDireccion(receptor) || { departamento: '06', municipio: '21', complemento: 'SV' },
       telefono: receptor.telefono || null,
@@ -326,6 +367,8 @@ export function buildNotaCredito({ emisor, ambiente, correlativo, receptor, item
     condicionOperacion: 1,
   };
 
+  const act = normalizarActividad(receptor.cod_actividad, receptor.desc_actividad);
+
   const dte = {
     identificacion,
     documentoRelacionado,
@@ -334,8 +377,8 @@ export function buildNotaCredito({ emisor, ambiente, correlativo, receptor, item
       nit: digits(receptor.num_documento),
       nrc: digits(receptor.nrc) || null,
       nombre: receptor.nombre,
-      codActividad: receptor.cod_actividad || null,
-      descActividad: receptor.desc_actividad || null,
+      codActividad: act.codActividad,
+      descActividad: act.descActividad,
       nombreComercial: receptor.nombre_comercial || receptor.nombre,
       direccion: buildDireccion(receptor) || { departamento: '06', municipio: '21', complemento: 'SV' },
       telefono: receptor.telefono || null,

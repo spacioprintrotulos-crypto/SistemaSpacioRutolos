@@ -500,11 +500,11 @@
             </div>
             <div class="dte-viewer-actions">
               <button class="btn btn-verde" onclick="DTEVisual.imprimir('${modalId}')">🖨️ Imprimir / Guardar PDF</button>
-              <button class="btn btn-secundario" onclick="DTEVisual.descargarPDF('${modalId}', '${fileName}')">⬇️ Descargar PDF</button>
+              <button class="btn btn-magenta" onclick="DTEVisual.descargarPDF('${modalId}', '${fileName}')">⬇️ Descargar PDF</button>
               <button class="btn btn-azul" onclick="DTEVisual.enviarEmailModal('${modalId}')">✉️ Email</button>
               <button class="btn btn-whatsapp" onclick="DTEVisual.enviarWhatsAppModal('${modalId}')">💬 WhatsApp</button>
-              <button class="btn btn-ghost" onclick="DTEVisual.descargarJSON('${modalId}', '${fileName}')">{ } JSON</button>
-              <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
+              <button class="btn btn-json" onclick="DTEVisual.descargarJSON('${modalId}', '${fileName}')">{ } JSON</button>
+              <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
             </div>
           </div>
           <div class="dte-viewer-content" id="${modalId}-container">
@@ -769,7 +769,7 @@
               <button class="btn btn-azul" id="${modalId}-btn-enviar">✉️ Enviar Correo</button>
               <button class="btn btn-secundario" id="${modalId}-btn-mailto">📨 Abrir en App de Correo</button>
             </div>
-            <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
+            <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
           </div>
         </div>
       </div>
@@ -930,7 +930,7 @@ ${urlConsulta}
                 📱 Abrir en WhatsApp Web
               </button>
             </div>
-            <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
+            <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
           </div>
         </div>
       </div>

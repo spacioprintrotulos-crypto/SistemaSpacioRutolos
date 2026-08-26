@@ -501,12 +501,12 @@ function renderFormulario(app) {
         <table class="items-table">
           <thead><tr>
             <th style="min-width:200px;width:34%">Descripción</th>
-            <th style="min-width:100px">Venta</th>
-            <th style="min-width:70px;width:70px">Cant.</th>
-            <th style="min-width:110px;width:110px">Precio ${tipo === '01' ? '(c/IVA)' : '(s/IVA)'}</th>
-            <th style="min-width:100px;width:110px">Desc. $</th>
-            <th style="min-width:110px;width:120px">Subtotal</th>
-            <th style="width:40px"></th>
+            <th style="min-width:105px;width:110px">Venta</th>
+            <th style="min-width:85px;width:85px;text-align:center">Cant.</th>
+            <th style="min-width:110px;width:115px;text-align:right">Precio ${tipo === '01' ? '(c/IVA)' : '(s/IVA)'}</th>
+            <th style="min-width:100px;width:110px;text-align:right">Desc. $</th>
+            <th style="min-width:110px;width:120px;text-align:right">Subtotal</th>
+            <th style="width:44px;text-align:center"></th>
           </tr></thead>
           <tbody id="items-body"></tbody>
         </table>
@@ -546,7 +546,7 @@ function renderFormulario(app) {
       <div class="mt flex" style="gap:10px;flex-wrap:wrap">
         <button class="btn btn-verde" id="btn-emitir">🚀 Emitir DTE</button>
         <button class="btn btn-secundario" type="button" id="btn-vista-previa-emision">👁️ Vista Previa del Comprobante</button>
-        <button class="btn btn-ghost" onclick="location.hash='#/'">Cancelar</button>
+        <button class="btn btn-cancelar" onclick="location.hash='#/'">Cancelar</button>
       </div>
     </div>
   `;
@@ -601,11 +601,14 @@ function renderFormulario(app) {
       uniMedida: Number(it.uniMedida || 59),
       precioUni: Number(it.precioUni || 0),
       montoDescu: Number(it.montoDescu || 0),
-      ventaGravada: it.tipoVenta === 'gravada' ? (Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0)) : 0,
-      ventaExenta: it.tipoVenta === 'exenta' ? (Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0)) : 0,
-      ventaNoSuj: it.tipoVenta === 'nosuj' ? (Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0)) : 0,
+      ventaGravada: it.tipoVenta === 'gravada' ? Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0) : 0,
+      ventaExenta: it.tipoVenta === 'exenta' ? Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0) : 0,
+      ventaNoSuj: it.tipoVenta === 'nosuj' ? Number(it.cantidad || 1) * Number(it.precioUni || 0) - Number(it.montoDescu || 0) : 0,
     }));
-    if (!itemsValidos.length) return toast('Agregue al menos un ítem para previsualizar', 'error');
+
+    if (!itemsValidos.length) {
+      return toast('Agregue al menos un ítem con descripción para previsualizar', 'warn');
+    }
 
     let cfgEmisor = {};
     try {
@@ -662,12 +665,14 @@ function renderFormulario(app) {
         montoTotalOperacion: totPagar,
         totalPagar: totPagar,
         totalLetras: 'VISTA PREVIA — TOTAL ESTIMADO',
-        condicionOperacion: Number($('#condicion').value || 1),
+        condicionOperacion: Number($('#condicion')?.value || 1),
       }
     };
 
     if (typeof DTEVisual !== 'undefined') {
       DTEVisual.previsualizar(dtePreview, { sello: 'BORRADOR — VISTA PREVIA NO FISCAL' });
+    } else {
+      toast('Motor visual cargando...', 'info');
     }
   });
 }
@@ -695,7 +700,7 @@ function renderReceptorForm(area) {
       <div class="form-field"><label>Municipio / Distrito</label>${selMunicipios('')}</div>
       <div class="form-field"><label>Complemento de dirección</label><input name="complemento"></div>
       <div class="form-field"><label>Teléfono</label><input name="telefono"></div>
-      <div class="form-field"><label>Correo</label><input name="correo" type="email"></div>
+      <div class="form-field"><label>Correo</label><input name="correo"></div>
     </div>`;
 
   const form = $('#receptor-form', area);
@@ -715,17 +720,19 @@ function renderReceptorForm(area) {
       if (res.codigo) recCod.value = res.codigo;
       if (res.descripcion) recDesc.value = res.descripcion;
     });
-    form.querySelector('#btn-buscar-act-receptor')?.addEventListener('click', () => {
-      window.modalBuscarActividad((cod, desc) => {
-        recCod.value = cod;
-        recDesc.value = desc;
-      });
-    });
   }
+
+  form.querySelector('#btn-buscar-act-receptor')?.addEventListener('click', () => {
+    window.modalBuscarActividad((cod, desc) => {
+      if (recCod) recCod.value = cod;
+      if (recDesc) recDesc.value = desc;
+    });
+  });
 }
 
 function fillReceptor(c) {
   const form = $('#receptor-form');
+  if (!form) return;
   const set = (name, v) => { const el = form.querySelector(`[name="${name}"]`); if (el) el.value = v || ''; };
   set('tipo_documento', c.tipo_documento || '13');
   set('num_documento', c.num_documento);
@@ -734,9 +741,9 @@ function fillReceptor(c) {
   set('cod_actividad', c.cod_actividad);
   set('desc_actividad', c.desc_actividad);
   set('nombre_comercial', c.nombre_comercial);
+  set('complemento', c.complemento);
   set('telefono', c.telefono);
   set('correo', c.correo);
-  set('complemento', c.complemento);
   const depto = form.querySelector('.depto-select');
   if (depto) { depto.value = c.departamento || ''; depto.dispatchEvent(new Event('change')); const mun = form.querySelector('[name="municipio"]'); if (mun) mun.value = c.municipio || ''; }
 }
@@ -751,11 +758,11 @@ function renderItems() {
         <option value="exenta" ${it.tipoVenta === 'exenta' ? 'selected' : ''}>Exenta</option>
         <option value="nosuj" ${it.tipoVenta === 'nosuj' ? 'selected' : ''}>No sujeta</option>
       </select></td>
-      <td><input class="it-cant" data-i="${i}" type="number" step="any" min="0" value="${it.cantidad}"></td>
-      <td><input class="it-precio" data-i="${i}" type="number" step="0.01" min="0" value="${it.precioUni}"></td>
-      <td><input class="it-descu" data-i="${i}" type="number" step="0.01" min="0" value="${it.montoDescu || 0}"></td>
+      <td><input class="it-cant num" data-i="${i}" type="number" step="any" min="0" value="${it.cantidad}"></td>
+      <td><input class="it-precio num" data-i="${i}" type="number" step="0.01" min="0" value="${it.precioUni}"></td>
+      <td><input class="it-descu num" data-i="${i}" type="number" step="0.01" min="0" value="${it.montoDescu || 0}"></td>
       <td class="it-sub num" data-i="${i}">$0.00</td>
-      <td><button class="row-remove" onclick="quitarItem(${i})">×</button></td>
+      <td style="text-align:center"><button class="row-remove" onclick="quitarItem(${i})" title="Eliminar fila">×</button></td>
     </tr>`).join('');
 
   $$('.items-table input, .items-table select', body).forEach((el) => {
@@ -818,10 +825,10 @@ function recalcular() {
     ${tipo === '03' ? `<div class="resumen-row"><span>IVA percibido</span><span>${fmtMoneda(perci)}</span></div>` : ''}
     ${tipo !== '05' ? `<div class="resumen-row"><span>Retención IVA</span><span>-${fmtMoneda(reteIva)}</span></div>` : ''}
     ${tipo !== '05' ? `<div class="resumen-row"><span>Retención Renta</span><span>-${fmtMoneda(reteRenta)}</span></div>` : ''}
-    <div class="resumen-row total"><span>Total a pagar</span><span>${fmtMoneda(total)}</span></div>`;
+    <div class="resumen-row total"><span>Total a pagar</span><span>${fmtMoneda(total)}</span></div>
+  `;
 }
 
-// ---------- Emitir ----------
 async function emitir() {
   const tipo = state.tipoDte;
   const form = $('#receptor-form');
@@ -909,8 +916,8 @@ function mostrarResultado(r) {
 
   document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
-      <div class="modal" style="max-width:680px">
-        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="modal modal-resultado-dte" style="max-width:840px;width:94vw;padding:28px 30px">
+        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
           <h3 style="margin-bottom:0">${ok ? '✅ DTE Generado y Procesado' : '⚠️ DTE con Observaciones o Errores'}</h3>
           <span class="badge-estado ${esc(r.estado)}">${esc(r.estado)}</span>
         </div>
@@ -925,17 +932,21 @@ function mostrarResultado(r) {
           <div class="resumen-row"><span>Sello de recepción</span><span style="font-size:12px">${esc(r.selloRecibido || '—')}</span></div>
           <div class="resumen-row total"><span>Total a Pagar</span><span>${fmtMoneda(r.total)}</span></div>
         </div>
-        <div class="modal-actions" style="justify-content:space-between">
-          <div class="flex" style="gap:8px;flex-wrap:wrap">
+        <div class="modal-actions" style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
+          <div class="flex" style="gap:10px;flex-wrap:wrap;justify-content:flex-start">
             <button class="btn btn-verde" onclick="verComprobanteUltimo()">📄 Ver Comprobante / Imprimir</button>
             <button class="btn btn-azul" onclick="enviarEmailUltimo()">✉️ Enviar por Correo</button>
             <button class="btn btn-whatsapp" onclick="enviarWhatsAppUltimo()">💬 Enviar WhatsApp</button>
-            <button class="btn btn-secundario" onclick="descargarPDFResultado('${fileName}')">⬇️ PDF</button>
-            <button class="btn btn-ghost" onclick="descargarJSONResultado('${fileName}')">{ } JSON</button>
           </div>
-          <div class="flex" style="gap:8px">
-            <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
-            <button class="btn btn-verde" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">+ Emitir otro</button>
+          <div class="flex" style="gap:10px;flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--borde);padding-top:14px">
+            <div class="flex" style="gap:10px;flex-wrap:wrap">
+              <button class="btn btn-magenta" onclick="descargarPDFResultado('${fileName}')">⬇️ PDF</button>
+              <button class="btn btn-json" onclick="descargarJSONResultado('${fileName}')">{ } JSON</button>
+            </div>
+            <div class="flex" style="gap:10px">
+              <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
+              <button class="btn btn-otro" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">+ Emitir otro</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1088,7 +1099,7 @@ window.modalCliente = (id) => {
           <div class="form-field"><label>Correo</label><input id="c-correo" value="${esc(c.correo || '')}"></div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+          <button class="btn btn-cancelar" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
           <button class="btn btn-verde" id="c-guardar">Guardar</button>
         </div>
       </div>
@@ -1248,9 +1259,9 @@ window.verDTE = async (id) => {
               <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver Comprobante</button>
               <button class="btn btn-azul" onclick="enviarEmailDTEId(${dte.id})">✉️ Email</button>
               <button class="btn btn-whatsapp" onclick="enviarWhatsAppDTEId(${dte.id})">💬 WhatsApp</button>
-              <button class="btn btn-secundario" onclick="descargarDTEJSON(${dte.id})">⬇️ JSON</button>
+              <button class="btn btn-json" onclick="descargarDTEJSON(${dte.id})">⬇️ JSON</button>
             </div>
-            <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+            <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
           </div>
         </div>
       </div>`);
@@ -1309,7 +1320,7 @@ window.modalAnular = (id) => {
           <div class="form-field"><label>Solicitante — doc. número</label><input id="an-s-num"></div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+          <button class="btn btn-cancelar" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
           <button class="btn btn-rojo" onclick="anular(${id})">Confirmar anulación</button>
         </div>
       </div>
@@ -1583,17 +1594,17 @@ function pintarNuevaCotizacion() {
       <table class="items-table">
         <thead>
           <tr>
-            <th style="width:90px">Cantidad</th>
+            <th style="width:95px;min-width:85px;text-align:center">Cantidad</th>
             <th>Descripción del producto / trabajo</th>
-            <th style="width:140px">Precio unitario</th>
+            <th style="width:140px;text-align:right">Precio unitario</th>
             <th style="width:130px;text-align:right">Total</th>
-            <th style="width:40px"></th>
+            <th style="width:44px;text-align:center"></th>
           </tr>
         </thead>
         <tbody id="cot-items-body"></tbody>
       </table>
       <div class="btn-add-item">
-        <button class="btn btn-secundario" id="btn-cot-add-item">+ Agregar producto / línea</button>
+        <button class="btn btn-secundario btn-add-item" id="btn-cot-add-item">+ Agregar producto / línea</button>
       </div>
     </div>
 
@@ -1604,7 +1615,7 @@ function pintarNuevaCotizacion() {
         <div class="resumen-row total"><span>Total a cotizar</span><span id="cot-res-total">$0.00</span></div>
       </div>
       <div class="flex" style="gap:12px">
-        <button class="btn btn-ghost" onclick="limpiarFormCotizacion()">Limpiar</button>
+        <button class="btn btn-cancelar" onclick="limpiarFormCotizacion()">Limpiar</button>
         <button class="btn btn-verde" id="btn-cot-guardar" style="font-size:15px;padding:14px 28px;box-shadow:0 10px 25px rgba(22,163,74,.3)">
           💾 Guardar y Generar PDF / Imprimir
         </button>
@@ -1624,12 +1635,12 @@ function pintarNuevaCotizacion() {
     if (!tbody) return;
     tbody.innerHTML = cotItems.map((it, idx) => `
       <tr>
-        <td><input type="number" min="1" step="1" class="cot-item-qty" data-idx="${idx}" value="${it.quantity || 1}"></td>
+        <td><input type="number" min="1" step="1" class="cot-item-qty num" data-idx="${idx}" value="${it.quantity || 1}"></td>
         <td><input type="text" class="cot-item-desc" data-idx="${idx}" value="${esc(it.description || '')}" placeholder="Descripción del producto o servicio..."></td>
         <td><input type="number" min="0" step="0.01" class="cot-item-price num" data-idx="${idx}" value="${it.price || ''}" placeholder="0.00"></td>
         <td style="text-align:right;font-weight:700" class="cot-item-total">${fmtMoneda((Number(it.quantity) || 0) * (Number(it.price) || 0))}</td>
         <td style="text-align:center">
-          ${cotItems.length > 1 ? `<button class="row-remove" onclick="removeCotItem(${idx})">×</button>` : ''}
+          ${cotItems.length > 1 ? `<button class="row-remove" onclick="removeCotItem(${idx})" title="Eliminar fila">×</button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -1847,9 +1858,9 @@ window.modalVerCotizacion = (quote) => {
             <button class="btn btn-secundario" onclick="convertirCotADTE(${quote.id || 0})">🔄 Emitir Factura / CCF</button>
           </div>
           <div class="flex" style="gap:10px">
-            <button class="btn btn-ghost" onclick="descargarCotSvg('${fileName}')">⬇️ Descargar SVG</button>
+            <button class="btn btn-secundario" onclick="descargarCotSvg('${fileName}')">⬇️ Descargar SVG</button>
             <button class="btn btn-verde" onclick="imprimirCotSvg('${fileName}')">🖨️ Imprimir / Guardar PDF</button>
-            <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+            <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
           </div>
         </div>
       </div>
@@ -2424,7 +2435,7 @@ function pintarConfig(r) {
           </div>
           <div class="modal-actions" style="justify-content:center;margin-top:18px">
             <button class="btn btn-secundario" id="${modalId}-btn-refresh">🔄 Actualizar Estado / QR</button>
-            <button class="btn btn-ghost" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
+            <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
           </div>
         </div>
       </div>

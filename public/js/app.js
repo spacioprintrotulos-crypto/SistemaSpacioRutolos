@@ -932,21 +932,41 @@ function mostrarResultado(r) {
           <div class="resumen-row"><span>Sello de recepción</span><span style="font-size:12px">${esc(r.selloRecibido || '—')}</span></div>
           <div class="resumen-row total"><span>Total a Pagar</span><span>${fmtMoneda(r.total)}</span></div>
         </div>
-        <div class="modal-actions" style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
-          <div class="flex" style="gap:10px;flex-wrap:wrap;justify-content:flex-start">
-            <button class="btn btn-verde" onclick="verComprobanteUltimo()">📄 Ver Comprobante / Imprimir</button>
-            <button class="btn btn-azul" onclick="enviarEmailUltimo()">✉️ Enviar por Correo</button>
-            <button class="btn btn-whatsapp" onclick="enviarWhatsAppUltimo()">💬 Enviar WhatsApp</button>
+        <div class="dte-actions-container">
+          <!-- Fila Principal: 3 columnas perfectamente distribuidas -->
+          <div class="dte-actions-primary">
+            <button class="btn btn-verde" onclick="verComprobanteUltimo()">
+              <span class="btn-icon">📄</span>
+              <span>Ver Comprobante / Imprimir</span>
+            </button>
+            <button class="btn btn-azul" onclick="enviarEmailUltimo()">
+              <span class="btn-icon">✉️</span>
+              <span>Enviar por Correo</span>
+            </button>
+            <button class="btn btn-whatsapp" onclick="enviarWhatsAppUltimo()">
+              <span class="btn-icon">💬</span>
+              <span>Enviar por WhatsApp</span>
+            </button>
           </div>
-          <div class="flex" style="gap:10px;flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--borde);padding-top:14px">
-            <div class="flex" style="gap:10px;flex-wrap:wrap">
-              <button class="btn btn-magenta" onclick="descargarPDFResultado('${fileName}')">⬇️ PDF</button>
-              <button class="btn btn-json" onclick="descargarJSONResultado('${fileName}')">{ } JSON</button>
-            </div>
-            <div class="flex" style="gap:10px">
-              <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
-              <button class="btn btn-otro" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">+ Emitir otro</button>
-            </div>
+
+          <!-- Fila Secundaria: 4 columnas perfectamente distribuidas de extremo a extremo -->
+          <div class="dte-actions-secondary">
+            <button class="btn btn-magenta" onclick="descargarPDFResultado('${fileName}')">
+              <span class="btn-icon">⬇️</span>
+              <span>Descargar PDF</span>
+            </button>
+            <button class="btn btn-json" onclick="descargarJSONResultado('${fileName}')">
+              <span class="btn-icon">{ }</span>
+              <span>Descargar JSON</span>
+            </button>
+            <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">
+              <span class="btn-icon">✕</span>
+              <span>Cerrar</span>
+            </button>
+            <button class="btn btn-otro" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">
+              <span class="btn-icon">➕</span>
+              <span>Emitir otro DTE</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1254,13 +1274,11 @@ window.verDTE = async (id) => {
           ${dte.estado === 'RECHAZADO' ? `<div class="alert alert-error mb">${esc(dte.observaciones || 'Rechazado por el MH')}</div>` : ''}
           <h3 style="margin-bottom:8px">JSON del documento</h3>
           <pre class="json-view">${esc(JSON.stringify(dteObj, null, 2))}</pre>
-          <div class="modal-actions" style="justify-content:space-between">
-            <div class="flex" style="gap:8px;flex-wrap:wrap">
-              <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver Comprobante</button>
-              <button class="btn btn-azul" onclick="enviarEmailDTEId(${dte.id})">✉️ Email</button>
-              <button class="btn btn-whatsapp" onclick="enviarWhatsAppDTEId(${dte.id})">💬 WhatsApp</button>
-              <button class="btn btn-json" onclick="descargarDTEJSON(${dte.id})">⬇️ JSON</button>
-            </div>
+          <div class="modal-actions" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-top:20px;width:100%">
+            <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver PDF</button>
+            <button class="btn btn-azul" onclick="enviarEmailDTEId(${dte.id})">✉️ Email</button>
+            <button class="btn btn-whatsapp" onclick="enviarWhatsAppDTEId(${dte.id})">💬 WhatsApp</button>
+            <button class="btn btn-json" onclick="descargarDTEJSON(${dte.id})">⬇️ JSON</button>
             <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
           </div>
         </div>

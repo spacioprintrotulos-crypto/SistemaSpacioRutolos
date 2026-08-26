@@ -390,7 +390,7 @@ window.modalBuscarActividad = (callback) => {
           <h3 style="margin:0;display:flex;align-items:center;gap:8px">
             <span style="font-size:1.2rem">🏛️</span> Actividades Económicas (CAT-019)
           </h3>
-          <button class="btn btn-ghost btn-xs" type="button" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+          <button class="btn-close-corner" type="button" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
         </div>
         <p class="text-gris small" style="margin-top:0;margin-bottom:14px">
           Busque en los 990 códigos oficiales del Ministerio de Hacienda por número o palabra clave.
@@ -401,7 +401,7 @@ window.modalBuscarActividad = (callback) => {
         <div id="lista-actividades-resultado" style="flex:1;overflow-y:auto;max-height:380px;border:1px solid var(--borde);border-radius:14px;padding:6px;background:var(--fondo-card)">
         </div>
         <div class="modal-actions" style="margin-top:14px;display:flex;justify-content:flex-end">
-          <button class="btn btn-secundario" type="button" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+          <button class="btn btn-cancelar" type="button" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
         </div>
       </div>
     </div>
@@ -918,8 +918,11 @@ function mostrarResultado(r) {
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
       <div class="modal modal-resultado-dte" style="max-width:840px;width:94vw;padding:28px 30px">
         <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
-          <h3 style="margin-bottom:0">${ok ? '✅ DTE Generado y Procesado' : '⚠️ DTE con Observaciones o Errores'}</h3>
-          <span class="badge-estado ${esc(r.estado)}">${esc(r.estado)}</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <h3 style="margin-bottom:0">${ok ? '✅ DTE Generado y Procesado' : '⚠️ DTE con Observaciones o Errores'}</h3>
+            <span class="badge-estado ${esc(r.estado)}">${esc(r.estado)}</span>
+          </div>
+          <button class="btn-close-corner" type="button" onclick="this.closest('.modal-backdrop').remove()" title="Cerrar ventana">✕ Cerrar</button>
         </div>
         ${r.emailEnviado ? `<div class="alert alert-success mb" style="display:flex;align-items:center;gap:8px;font-size:13px"><span>✉️</span><span><b>Correo enviado automáticamente:</b> Comprobante DTE y archivo JSON entregados a <b>${esc(r.emailDestinatario || 'spacioprintrotulos@gmail.com')}</b></span></div>` : ''}
         ${r.estado === 'SIMULADO' ? '<div class="alert alert-warning mb">Credenciales MH no configuradas: documento generado en modo SIMULADO (no transmitido). Configure su certificado y credenciales en <a href="#/configuracion" style="color:var(--azul)">Configuración</a>.</div>' : ''}
@@ -949,7 +952,7 @@ function mostrarResultado(r) {
             </button>
           </div>
 
-          <!-- Fila Secundaria: 4 columnas perfectamente distribuidas de extremo a extremo -->
+          <!-- Fila Secundaria: 3 columnas perfectamente distribuidas de extremo a extremo -->
           <div class="dte-actions-secondary">
             <button class="btn btn-magenta" onclick="descargarPDFResultado('${fileName}')">
               <span class="btn-icon">⬇️</span>
@@ -958,10 +961,6 @@ function mostrarResultado(r) {
             <button class="btn btn-json" onclick="descargarJSONResultado('${fileName}')">
               <span class="btn-icon">{ }</span>
               <span>Descargar JSON</span>
-            </button>
-            <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">
-              <span class="btn-icon">✕</span>
-              <span>Cerrar</span>
             </button>
             <button class="btn btn-otro" onclick="location.hash='#/'; this.closest('.modal-backdrop').remove()">
               <span class="btn-icon">➕</span>
@@ -1096,7 +1095,10 @@ window.modalCliente = (id) => {
   document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
       <div class="modal modal-lg" style="max-width:760px">
-        <h3>${id ? 'Editar cliente' : 'Nuevo cliente'}</h3>
+        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="margin:0">${id ? 'Editar cliente' : 'Nuevo cliente'}</h3>
+          <button class="btn-close-corner" type="button" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
+        </div>
         <div class="grid-3">
           <div class="form-field"><label>Tipo de documento</label><select id="c-tipo">${state.cat.tipoDocumento.map((t) => `<option value="${t.codigo}" ${t.codigo === (c.tipo_documento || '13') ? 'selected' : ''}>${esc(t.nombre)}</option>`).join('')}</select></div>
           <div class="form-field"><label>Número de documento</label><input id="c-num" value="${esc(c.num_documento || '')}"></div>
@@ -1260,8 +1262,11 @@ window.verDTE = async (id) => {
       <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
         <div class="modal" style="max-width:850px">
           <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
-            <h3 style="margin-bottom:0">DTE ${esc(dte.numero_control)}</h3>
-            <span class="badge-estado ${esc(dte.estado)}">${esc(dte.estado)}</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <h3 style="margin-bottom:0">DTE ${esc(dte.numero_control)}</h3>
+              <span class="badge-estado ${esc(dte.estado)}">${esc(dte.estado)}</span>
+            </div>
+            <button class="btn-close-corner" type="button" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
           </div>
           <div class="resumen-box mb">
             <div class="resumen-row"><span>Tipo de Documento</span><span><b>${esc(tipoNom)}</b></span></div>
@@ -1274,12 +1279,11 @@ window.verDTE = async (id) => {
           ${dte.estado === 'RECHAZADO' ? `<div class="alert alert-error mb">${esc(dte.observaciones || 'Rechazado por el MH')}</div>` : ''}
           <h3 style="margin-bottom:8px">JSON del documento</h3>
           <pre class="json-view">${esc(JSON.stringify(dteObj, null, 2))}</pre>
-          <div class="modal-actions" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-top:20px;width:100%">
+          <div class="modal-actions" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-top:20px;width:100%">
             <button class="btn btn-verde" onclick="this.closest('.modal-backdrop').remove(); verComprobanteDTE(${dte.id})">📄 Ver PDF</button>
             <button class="btn btn-azul" onclick="enviarEmailDTEId(${dte.id})">✉️ Email</button>
             <button class="btn btn-whatsapp" onclick="enviarWhatsAppDTEId(${dte.id})">💬 WhatsApp</button>
             <button class="btn btn-json" onclick="descargarDTEJSON(${dte.id})">⬇️ JSON</button>
-            <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
           </div>
         </div>
       </div>`);
@@ -1326,7 +1330,10 @@ window.modalAnular = (id) => {
   document.body.insertAdjacentHTML('beforeend', `
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
       <div class="modal">
-        <h3>Anular DTE #${id}</h3>
+        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="margin:0">Anular DTE #${id}</h3>
+          <button class="btn-close-corner" type="button" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
+        </div>
         <div class="alert alert-warning mb">Esta acción generará un evento de invalidación y lo enviará al Ministerio de Hacienda.</div>
         <div class="form-field"><label>Motivo de anulación</label><select id="an-motivo">${state.cat.tipoInvalidacion.map((t) => `<option value="${t.codigo}">${esc(t.nombre)}</option>`).join('')}</select></div>
         <div class="grid-3">
@@ -1863,23 +1870,21 @@ window.modalVerCotizacion = (quote) => {
     <div class="modal-backdrop" onclick="if(event.target===this)this.remove()">
       <div class="modal" style="max-width:880px">
         <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
-          <h3>Cotización N# ${esc(quote.correlativo || quote.correlative)} — ${esc(quote.cliente_nombre || quote.customer)}</h3>
-          <div class="badge-estado PROCESADO">Generada</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <h3 style="margin:0">Cotización N# ${esc(quote.correlativo || quote.correlative)} — ${esc(quote.cliente_nombre || quote.customer)}</h3>
+            <div class="badge-estado PROCESADO">Generada</div>
+          </div>
+          <button class="btn-close-corner" type="button" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
         </div>
 
         <div class="cotizacion-svg-container" id="cotizacion-print-area">
           ${svgMarkup}
         </div>
 
-        <div class="modal-actions" style="margin-top:20px;justify-content:space-between">
-          <div>
-            <button class="btn btn-secundario" onclick="convertirCotADTE(${quote.id || 0})">🔄 Emitir Factura / CCF</button>
-          </div>
-          <div class="flex" style="gap:10px">
-            <button class="btn btn-secundario" onclick="descargarCotSvg('${fileName}')">⬇️ Descargar SVG</button>
-            <button class="btn btn-verde" onclick="imprimirCotSvg('${fileName}')">🖨️ Imprimir / Guardar PDF</button>
-            <button class="btn btn-cerrar" onclick="this.closest('.modal-backdrop').remove()">✕ Cerrar</button>
-          </div>
+        <div class="modal-actions" style="margin-top:20px;display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;width:100%">
+          <button class="btn btn-secundario" onclick="convertirCotADTE(${quote.id || 0})">🔄 Emitir Factura / CCF</button>
+          <button class="btn btn-secundario" onclick="descargarCotSvg('${fileName}')">⬇️ Descargar SVG</button>
+          <button class="btn btn-verde" onclick="imprimirCotSvg('${fileName}')">🖨️ Imprimir / Guardar PDF</button>
         </div>
       </div>
     </div>
@@ -2446,14 +2451,13 @@ function pintarConfig(r) {
         <div class="modal" style="max-width:520px;text-align:center;padding:24px">
           <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
             <h3 style="margin:0">📱 Conexión WhatsApp Gateway</h3>
-            <button class="btn btn-ghost" style="padding:4px 8px" onclick="document.getElementById('${modalId}').remove()">✕</button>
+            <button class="btn-close-corner" type="button" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
           </div>
           <div id="${modalId}-content">
             <div class="center text-gris" style="padding:20px">Consultando estado del Gateway...</div>
           </div>
           <div class="modal-actions" style="justify-content:center;margin-top:18px">
             <button class="btn btn-secundario" id="${modalId}-btn-refresh">🔄 Actualizar Estado / QR</button>
-            <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
           </div>
         </div>
       </div>

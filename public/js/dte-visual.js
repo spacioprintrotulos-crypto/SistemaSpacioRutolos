@@ -504,7 +504,7 @@
               <button class="btn btn-azul" onclick="DTEVisual.enviarEmailModal('${modalId}')">✉️ Email</button>
               <button class="btn btn-whatsapp" onclick="DTEVisual.enviarWhatsAppModal('${modalId}')">💬 WhatsApp</button>
               <button class="btn btn-json" onclick="DTEVisual.descargarJSON('${modalId}', '${fileName}')">{ } JSON</button>
-              <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
+              <button class="btn-close-corner" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
             </div>
           </div>
           <div class="dte-viewer-content" id="${modalId}-container">
@@ -707,7 +707,7 @@
         <div class="modal" style="max-width:680px;padding:24px">
           <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:16px">
             <h3 style="margin:0;display:flex;align-items:center;gap:8px">✉️ Enviar Comprobante por Correo</h3>
-            <button class="btn btn-ghost" style="padding:4px 8px" onclick="document.getElementById('${modalId}').remove()">✕</button>
+            <button class="btn-close-corner" type="button" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
           </div>
 
           <div class="form-field">
@@ -764,12 +764,11 @@
             <div style="text-align:center;font-size:11px;color:#94a3b8">© 2026 Spacio Rotulos. - Todos los derechos reservados -</div>
           </div>
 
-          <div class="modal-actions" style="justify-content:space-between">
+          <div class="modal-actions" style="justify-content:flex-end">
             <div class="flex" style="gap:8px">
               <button class="btn btn-azul" id="${modalId}-btn-enviar">✉️ Enviar Correo</button>
               <button class="btn btn-secundario" id="${modalId}-btn-mailto">📨 Abrir en App de Correo</button>
             </div>
-            <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
           </div>
         </div>
       </div>
@@ -892,7 +891,7 @@ ${urlConsulta}
         <div class="modal" style="max-width:580px;padding:24px">
           <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:16px">
             <h3 style="margin:0;display:flex;align-items:center;gap:8px">💬 Enviar Comprobante por WhatsApp</h3>
-            <button class="btn btn-ghost" style="padding:4px 8px" onclick="document.getElementById('${modalId}').remove()">✕</button>
+            <button class="btn-close-corner" type="button" onclick="document.getElementById('${modalId}').remove()">✕ Cerrar</button>
           </div>
 
           <div class="form-field">
@@ -921,7 +920,7 @@ ${urlConsulta}
             </div>
           </div>
 
-          <div class="modal-actions" style="justify-content:space-between;margin-top:20px;flex-wrap:wrap;gap:8px">
+          <div class="modal-actions" style="justify-content:flex-end;margin-top:20px;flex-wrap:wrap;gap:8px">
             <div class="flex" style="gap:8px;flex-wrap:wrap">
               <button class="btn btn-whatsapp" id="${modalId}-btn-gateway" style="display:inline-flex;align-items:center;gap:6px">
                 💬 Enviar Automático (Gateway)
@@ -930,7 +929,6 @@ ${urlConsulta}
                 📱 Abrir en WhatsApp Web
               </button>
             </div>
-            <button class="btn btn-cerrar" onclick="document.getElementById('${modalId}').remove()">Cerrar</button>
           </div>
         </div>
       </div>

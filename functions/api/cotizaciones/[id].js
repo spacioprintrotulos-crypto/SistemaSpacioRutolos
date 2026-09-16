@@ -9,11 +9,15 @@ export async function onRequestGet({ params, env }) {
 
     let items = [];
     try { items = JSON.parse(c.items_json); } catch {}
+    const hasIva = c.aplica_iva !== undefined && c.aplica_iva !== null
+      ? Boolean(c.aplica_iva)
+      : (Number(c.iva || 0) > 0);
 
     return json({
       ok: true,
       cotizacion: {
         ...c,
+        aplica_iva: hasIva,
         items,
       },
     });

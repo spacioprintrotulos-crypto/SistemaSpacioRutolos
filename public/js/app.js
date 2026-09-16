@@ -1387,7 +1387,17 @@ function displayDateES(input) {
 }
 
 function wrapTextLines(text, maxChars, maxLines = 7) {
-  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const rawWords = String(text || '').split(/\s+/).filter(Boolean);
+  const words = [];
+  for (const w of rawWords) {
+    if (w.length > maxChars) {
+      for (let i = 0; i < w.length; i += maxChars) {
+        words.push(w.slice(i, i + maxChars));
+      }
+    } else {
+      words.push(w);
+    }
+  }
   const lines = [];
   let line = '';
   for (const word of words) {
@@ -1425,7 +1435,6 @@ function generateCotizacionSvg(quote) {
   const tableY = 255;
   const tableW = 495;
   const headerH = 31;
-  const rowH = 25;
   const colQty = 52;
   const colDesc = 248;
   const colUnit = 90;
@@ -1433,32 +1442,108 @@ function generateCotizacionSvg(quote) {
   const xDesc = tableX + colQty;
   const xUnit = xDesc + colDesc;
   const xTotal = xUnit + colUnit;
-  const tableBottom = tableY + headerH + (itemRows.length * rowH);
+
+  let currentY = tableY + headerH;
+  let itemText = '';
+
+  itemRows.forEach((item, index) => {
+    const descText = String(item.description || '').trim().toUpperCase();
+    const lines = wrapTextLines(descText, 38, 3);
+    let fontSize = 7.5;
+    let lineHeight = 9;
+    let rowH = 25;
+
+    if (lines.length === 1) {
+      fontSize = 7.5;
+      rowH = 25;
+    } else if (lines.length === 2) {
+      fontSize = 6.7;
+      lineHeight = 8.5;
+      rowH = 26;
+    } else {
+      fontSize = 5.7;
+      lineHeight = 7.5;
+      rowH = 28;
+    }
+
+    const y = currentY;
+    currentY += rowH;
+
+    const fill = index % 2 === 0 ? '#ffffff' : '#f6f7f8';
+    itemText += `<rect x="${tableX}" y="${y}" width="${tableW}" height="${rowH}" fill="${fill}"/>`;
+    itemText += svgTextElement(tableX + 26, y + (rowH / 2) + 3, item.quantity, { size: 8, anchor: 'middle', fill: '#242a31' });
+
+    const totalTextH = (lines.length - 1) * lineHeight;
+    const startTextY = y + (rowH / 2) - (totalTextH / 2) + 3;
+    lines.forEach((line, lineIndex) => {
+      itemText += svgTextElement(xDesc + 10, startTextY + (lineIndex * lineHeight), line, { size: fontSize, fill: '#242a31' });
+    });
+
+    itemText += svgTextElement(xUnit + 12, y + (rowH / 2) + 3, '$', { size: 8, fill: '#242a31' });
+    itemText += svgTextElement(xUnit + colUnit - 12, y + (rowH / 2) + 3, Number(item.price || 0).toFixed(2), { size: 8, anchor: 'end', fill: '#242a31' });
+    itemText += svgTextElement(xTotal + 12, y + (rowH / 2) + 3, '$', { size: 8, fill: '#242a31' });
+    itemText += svgTextElement(tableX + tableW - 12, y + (rowH / 2) + 3, Number(item.quantity * item.price).toFixed(2), { size: 8, anchor: 'end', fill: '#242a31' });
+  });
+
+  const tableBottom = currentY;
   const notesText = String(quote.notas || '').trim();
   const notesLines = notesText ? wrapTextLines(notesText.toUpperCase(), 95, 4) : [];
   const notesBlockH = notesLines.length ? 14 + notesLines.length * 10 + 6 : 0;
   const totalsY = Math.max(548, tableBottom + notesBlockH + 18);
   const notesY = totalsY - notesBlockH;
 
-  let itemText = '';
-  itemRows.forEach((item, index) => {
-    const y = tableY + headerH + index * rowH;
-    const fill = index % 2 === 0 ? '#ffffff' : '#f6f7f8';
-    itemText += `<rect x="${tableX}" y="${y}" width="${tableW}" height="${rowH}" fill="${fill}"/>`;
-    itemText += svgTextElement(tableX + 26, y + 16, item.quantity, { size: 8, anchor: 'middle', fill: '#242a31' });
-    wrapTextLines(String(item.description || '').toUpperCase(), 45, 2).forEach((line, lineIndex) => {
-      itemText += svgTextElement(xDesc + 12, y + 13 + lineIndex * 8.3, line, { size: 6.4, fill: '#242a31' });
-    });
-    itemText += svgTextElement(xUnit + 14, y + 16, '$', { size: 8, fill: '#242a31' });
-    itemText += svgTextElement(xUnit + colUnit - 12, y + 16, Number(item.price || 0).toFixed(2), { size: 8, anchor: 'end', fill: '#242a31' });
-    itemText += svgTextElement(xTotal + 14, y + 16, '$', { size: 8, fill: '#242a31' });
-    itemText += svgTextElement(tableX + tableW - 12, y + 16, Number(item.quantity * item.price).toFixed(2), { size: 8, anchor: 'end', fill: '#242a31' });
-  });
-
   const paymentTerms = String(quote.condiciones_pago || 'Contra entrega');
   const paymentLines = wrapTextLines(paymentTerms.toUpperCase(), 34, 2)
     .map((line, index) => svgTextElement(64, totalsY + 85 + (index * 10), line, { size: 8.5, weight: '700', fill: '#17202a' }))
     .join('');
+
+  // Auto-ajuste estético de nombre de cliente
+  const clientUpper = String(quote.customer || quote.cliente_nombre || '').trim().toUpperCase();
+  let clientSvgMarkup = '';
+  if (clientUpper.length <= 22) {
+    clientSvgMarkup = svgTextElement(50, 176, clientUpper, { size: 15, weight: '700', fill: '#17202a' });
+  } else if (clientUpper.length <= 34) {
+    clientSvgMarkup = svgTextElement(50, 176, clientUpper, { size: 11.5, weight: '700', fill: '#17202a' });
+  } else {
+    const clientLines = wrapTextLines(clientUpper, 30, 2);
+    const clientSize = clientLines.some((l) => l.length > 27) ? 9 : 10.2;
+    clientSvgMarkup = clientLines.map((line, idx) =>
+      svgTextElement(50, 171 + (idx * 12), line, { size: clientSize, weight: '700', fill: '#17202a' })
+    ).join('');
+  }
+
+  // Determinación de IVA habilitado / deshabilitado
+  const hasIva = quote.aplica_iva !== undefined && quote.aplica_iva !== null
+    ? Boolean(quote.aplica_iva)
+    : (Number(quote.iva || 0) > 0);
+
+  const subtotalVal = Number(quote.subtotal || 0).toFixed(2);
+  const ivaVal = Number(quote.iva || 0).toFixed(2);
+  const totalVal = Number(quote.total || (hasIva ? (Number(quote.subtotal || 0) + Number(quote.iva || 0)) : quote.subtotal) || 0).toFixed(2);
+
+  let totalsMarkup = '';
+  if (hasIva) {
+    totalsMarkup = `
+  <rect x="350" y="${totalsY}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
+  <rect x="350" y="${totalsY + 31}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
+  <rect x="350" y="${totalsY + 62}" width="195" height="36" fill="#2b3036"/>
+  ${svgTextElement(365, totalsY + 20, 'SUBTOTAL', { size: 8.5, fill: '#3b4652' })}
+  ${svgTextElement(533, totalsY + 20, `$ ${subtotalVal}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
+  ${svgTextElement(365, totalsY + 51, 'IVA 13%', { size: 8.5, fill: '#3b4652' })}
+  ${svgTextElement(533, totalsY + 51, `$ ${ivaVal}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
+  ${svgTextElement(365, totalsY + 85, 'TOTAL', { size: 12, weight: '700', fill: '#ffffff' })}
+  ${svgTextElement(533, totalsY + 85, `$ ${totalVal}`, { size: 12, weight: '700', anchor: 'end', fill: '#ffffff' })}
+    `;
+  } else {
+    totalsMarkup = `
+  <rect x="350" y="${totalsY}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
+  <rect x="350" y="${totalsY + 31}" width="195" height="36" fill="#2b3036"/>
+  ${svgTextElement(365, totalsY + 20, 'SUBTOTAL', { size: 8.5, fill: '#3b4652' })}
+  ${svgTextElement(533, totalsY + 20, `$ ${subtotalVal}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
+  ${svgTextElement(365, totalsY + 54, 'TOTAL', { size: 12, weight: '700', fill: '#ffffff' })}
+  ${svgTextElement(533, totalsY + 54, `$ ${totalVal}`, { size: 12, weight: '700', anchor: 'end', fill: '#ffffff' })}
+    `;
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="595" height="842" viewBox="0 0 595 842" style="background:#fff;display:block;margin:0 auto">
   <rect width="595" height="842" fill="#f3f4f6"/>
@@ -1472,7 +1557,7 @@ function generateCotizacionSvg(quote) {
 
   <line x1="50" y1="132" x2="545" y2="132" stroke="#d8dde3" stroke-width="1"/>
   ${svgTextElement(50, 156, 'COTIZACION PARA', { size: 8, weight: '700', fill: '#69717b' })}
-  ${svgTextElement(50, 176, String(quote.customer || quote.cliente_nombre || '').toUpperCase(), { size: 16, weight: '700', fill: '#17202a' })}
+  ${clientSvgMarkup}
   ${svgTextElement(50, 196, `TEL: ${quote.phone || quote.telefono || ''}`, { size: 8.8, fill: '#3b4652' })}
   ${svgTextElement(50, 211, `San Salvador ${displayDateES(quote.date || quote.fecha)}`, { size: 8.8, fill: '#3b4652' })}
 
@@ -1491,7 +1576,7 @@ function generateCotizacionSvg(quote) {
   ${svgTextElement(xTotal + 52, tableY + 20, 'TOTAL', { size: 8, weight: '700', anchor: 'middle', fill: '#ffffff' })}
   ${itemText}
 
-  <rect x="${tableX}" y="${tableY}" width="${tableW}" height="${headerH + itemRows.length * rowH}" fill="none" stroke="#d8dde3" stroke-width="1"/>
+  <rect x="${tableX}" y="${tableY}" width="${tableW}" height="${tableBottom - tableY}" fill="none" stroke="#d8dde3" stroke-width="1"/>
   <line x1="${xDesc}" y1="${tableY}" x2="${xDesc}" y2="${tableBottom}" stroke="#e0e4e8" stroke-width="1"/>
   <line x1="${xUnit}" y1="${tableY}" x2="${xUnit}" y2="${tableBottom}" stroke="#e0e4e8" stroke-width="1"/>
   <line x1="${xTotal}" y1="${tableY}" x2="${xTotal}" y2="${tableBottom}" stroke="#e0e4e8" stroke-width="1"/>
@@ -1502,15 +1587,7 @@ function generateCotizacionSvg(quote) {
   ${notesLines.map((line, index) => svgTextElement(62, notesY + 21 + index * 10, line, { size: 8, fill: '#3b4652' })).join('')}
   ` : ''}
 
-  <rect x="350" y="${totalsY}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
-  <rect x="350" y="${totalsY + 31}" width="195" height="31" fill="#ffffff" stroke="#d8dde3" stroke-width="1"/>
-  <rect x="350" y="${totalsY + 62}" width="195" height="36" fill="#2b3036"/>
-  ${svgTextElement(365, totalsY + 20, 'SUBTOTAL', { size: 8.5, fill: '#3b4652' })}
-  ${svgTextElement(533, totalsY + 20, `$ ${Number(quote.subtotal || 0).toFixed(2)}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
-  ${svgTextElement(365, totalsY + 51, 'IVA 13%', { size: 8.5, fill: '#3b4652' })}
-  ${svgTextElement(533, totalsY + 51, `$ ${Number(quote.iva || 0).toFixed(2)}`, { size: 8.5, anchor: 'end', fill: '#17202a' })}
-  ${svgTextElement(365, totalsY + 85, 'TOTAL', { size: 12, weight: '700', fill: '#ffffff' })}
-  ${svgTextElement(533, totalsY + 85, `$ ${Number(quote.total || 0).toFixed(2)}`, { size: 12, weight: '700', anchor: 'end', fill: '#ffffff' })}
+  ${totalsMarkup}
 
   ${svgTextElement(50, totalsY + 19, 'TIEMPO DE ENTREGA', { size: 8, weight: '700', fill: '#69717b' })}
   ${svgTextElement(64, totalsY + 39, delivery, { size: 12, weight: '700', fill: '#17202a' })}
@@ -1628,15 +1705,22 @@ function pintarNuevaCotizacion() {
         </thead>
         <tbody id="cot-items-body"></tbody>
       </table>
-      <div class="btn-add-item">
-        <button class="btn btn-secundario btn-add-item" id="btn-cot-add-item">+ Agregar producto / línea</button>
+      <div style="margin-top:16px">
+        <button type="button" class="btn btn-add-linea" id="btn-cot-add-item">+ Agregar producto / línea</button>
       </div>
     </div>
 
     <div class="card flex" style="justify-content:space-between;align-items:center;padding:24px;flex-wrap:wrap;gap:18px">
       <div class="resumen-box" style="min-width:320px;flex:1">
+        <div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <label for="cot-aplica-iva" style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:14px;color:var(--texto);user-select:none">
+            <input type="checkbox" id="cot-aplica-iva" checked style="width:18px;height:18px;accent-color:var(--verde);cursor:pointer">
+            <span>Aplicar IVA (13%) a la cotización</span>
+          </label>
+          <span id="cot-badge-iva-estado" style="background:rgba(16,185,129,0.15);color:var(--verde);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:0.5px">CON IVA (13%)</span>
+        </div>
         <div class="resumen-row"><span>Subtotal</span><span id="cot-res-subtotal">$0.00</span></div>
-        <div class="resumen-row"><span>IVA (13%)</span><span id="cot-res-iva">$0.00</span></div>
+        <div class="resumen-row" id="cot-row-iva"><span>IVA (13%)</span><span id="cot-res-iva">$0.00</span></div>
         <div class="resumen-row total"><span>Total a cotizar</span><span id="cot-res-total">$0.00</span></div>
       </div>
       <div class="flex" style="gap:12px">
@@ -1708,12 +1792,34 @@ function pintarNuevaCotizacion() {
         if (totalEl) totalEl.textContent = fmtMoneda(lineTotal);
       }
     });
-    const iva = subtotal * 0.13;
+
+    const aplicaIva = $('#cot-aplica-iva')?.checked ?? true;
+    const iva = aplicaIva ? (subtotal * 0.13) : 0;
     const total = subtotal + iva;
+
     $('#cot-res-subtotal').textContent = fmtMoneda(subtotal);
-    $('#cot-res-iva').textContent = fmtMoneda(iva);
+
+    const rowIva = $('#cot-row-iva');
+    const badgeIva = $('#cot-badge-iva-estado');
+    if (rowIva) {
+      if (aplicaIva) {
+        rowIva.style.display = 'flex';
+        $('#cot-res-iva').textContent = fmtMoneda(iva);
+      } else {
+        rowIva.style.display = 'none';
+        $('#cot-res-iva').textContent = '$0.00';
+      }
+    }
+    if (badgeIva) {
+      badgeIva.textContent = aplicaIva ? 'CON IVA (13%)' : 'SIN IVA (EXENTO)';
+      badgeIva.style.background = aplicaIva ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.15)';
+      badgeIva.style.color = aplicaIva ? 'var(--verde)' : 'var(--gris)';
+    }
+
     $('#cot-res-total').textContent = fmtMoneda(total);
   };
+
+  $('#cot-aplica-iva')?.addEventListener('change', updateCotTotals);
 
   renderItemsRows();
 
@@ -1731,6 +1837,8 @@ function pintarNuevaCotizacion() {
 
     if (!validItems.length) return toast('Agrega al menos un producto con descripción y precio', 'error');
 
+    const aplicaIva = $('#cot-aplica-iva')?.checked ?? true;
+
     const payload = {
       correlativo: $('#cot-correlativo').value.trim(),
       fecha: $('#cot-fecha').value,
@@ -1739,6 +1847,7 @@ function pintarNuevaCotizacion() {
       dias_entrega: Number($('#cot-dias').value) || 1,
       condiciones_pago: $('#cot-condiciones').value.trim(),
       notas: $('#cot-notas').value.trim(),
+      aplica_iva: aplicaIva,
       items: validItems,
     };
 
@@ -1818,14 +1927,16 @@ function pintarHistorialCotizaciones() {
       return;
     }
 
-    tbody.innerHTML = filtered.map((c) => `
+    tbody.innerHTML = filtered.map((c) => {
+      const hasIva = c.aplica_iva !== false && Number(c.iva || 0) > 0;
+      return `
       <tr>
         <td><b>${esc(c.correlativo)}</b></td>
         <td>${esc(c.fecha)}</td>
         <td><b>${esc(c.cliente_nombre)}</b></td>
         <td>${esc(c.telefono || '—')}</td>
         <td>${fmtMoneda(c.subtotal)}</td>
-        <td>${fmtMoneda(c.iva)}</td>
+        <td>${hasIva ? fmtMoneda(c.iva) : '<span class="text-gris" style="font-size:12px;font-weight:600">Sin IVA</span>'}</td>
         <td><b style="color:var(--azul)">${fmtMoneda(c.total)}</b></td>
         <td class="cell-actions" style="text-align:right">
           <div class="btn-group-actions">
@@ -1834,7 +1945,8 @@ function pintarHistorialCotizaciones() {
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   };
 
   $('#buscar-cot')?.addEventListener('input', (e) => renderRows(e.target.value));

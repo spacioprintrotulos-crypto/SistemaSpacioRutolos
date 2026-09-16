@@ -698,14 +698,14 @@ input, select, textarea { font-family: inherit; }
   color: #ffffff;
 }
 
-.btn-add-item, .btn-add-linea {
+button.btn-add-item, button.btn-add-linea, .btn.btn-add-item, .btn.btn-add-linea {
   background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
   color: #ffffff !important;
   border: none !important;
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.32) !important;
   font-weight: 700 !important;
 }
-.btn-add-item:hover, .btn-add-linea:hover {
+button.btn-add-item:hover, button.btn-add-linea:hover, .btn.btn-add-item:hover, .btn.btn-add-linea:hover {
   background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 8px 22px rgba(16, 185, 129, 0.45) !important;
@@ -1592,7 +1592,7 @@ input, select, textarea { font-family: inherit; }
   color: #ffffff;
 }
 
-.btn-add-item { margin-top: 16px; }
+button.btn-add-item, .btn.btn-add-item, .btn-add-container { margin-top: 16px; }
 
 /* ---------- Resumen ---------- */
 .resumen-box { 

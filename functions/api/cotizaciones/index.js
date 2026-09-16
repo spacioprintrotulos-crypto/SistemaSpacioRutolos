@@ -24,8 +24,12 @@ export async function onRequestGet({ request, env }) {
     const cotizaciones = (rawCotizaciones || []).map((c) => {
       let items = [];
       try { items = JSON.parse(c.items_json); } catch {}
+      const hasIva = c.aplica_iva !== undefined && c.aplica_iva !== null
+        ? Boolean(c.aplica_iva)
+        : (Number(c.iva || 0) > 0);
       return {
         ...c,
+        aplica_iva: hasIva,
         items,
       };
     });
@@ -71,9 +75,11 @@ export async function onRequestPost({ request, env }) {
       return json({ ok: false, error: 'Agrega al menos un ítem con cantidad y descripción' }, 400);
     }
 
+    const aplicaIva = body.aplica_iva !== undefined ? Boolean(body.aplica_iva) : true;
     const subtotal = Number(items.reduce((sum, it) => sum + (it.quantity * it.price), 0).toFixed(2));
-    const iva = Number((subtotal * 0.13).toFixed(2));
+    const iva = aplicaIva ? Number((subtotal * 0.13).toFixed(2)) : 0;
     const total = Number((subtotal + iva).toFixed(2));
+    const aplicaIvaVal = aplicaIva ? 1 : 0;
 
     // Determinar correlativo
     let correlativo = String(body.correlativo || '').trim();
@@ -90,12 +96,22 @@ export async function onRequestPost({ request, env }) {
     const notas = String(body.notas || body.notes || '').trim();
     const itemsJson = JSON.stringify(items);
 
-    const res = await env.DB.prepare(
-      `INSERT INTO cotizaciones (correlativo, fecha, cliente_nombre, telefono, dias_entrega, condiciones_pago, notas, items_json, subtotal, iva, total, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-    ).bind(
-      correlativo, fecha, clienteNombre, telefono, diasEntrega, condicionesPago, notas, itemsJson, subtotal, iva, total
-    ).run();
+    let res;
+    try {
+      res = await env.DB.prepare(
+        `INSERT INTO cotizaciones (correlativo, fecha, cliente_nombre, telefono, dias_entrega, condiciones_pago, notas, items_json, subtotal, iva, total, aplica_iva, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+      ).bind(
+        correlativo, fecha, clienteNombre, telefono, diasEntrega, condicionesPago, notas, itemsJson, subtotal, iva, total, aplicaIvaVal
+      ).run();
+    } catch {
+      res = await env.DB.prepare(
+        `INSERT INTO cotizaciones (correlativo, fecha, cliente_nombre, telefono, dias_entrega, condiciones_pago, notas, items_json, subtotal, iva, total, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+      ).bind(
+        correlativo, fecha, clienteNombre, telefono, diasEntrega, condicionesPago, notas, itemsJson, subtotal, iva, total
+      ).run();
+    }
 
     const id = res.meta?.last_row_id;
 
@@ -134,6 +150,7 @@ export async function onRequestPost({ request, env }) {
       subtotal,
       iva,
       total,
+      aplica_iva: aplicaIva,
     };
 
     return json({ ok: true, cotizacion }, 201);
